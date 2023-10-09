@@ -68,6 +68,9 @@ from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import g
 from Configuration.Eras.Modifier_highBetaStar_2018_cff import highBetaStar_2018
 highBetaStar_2018.toModify(detachedTripletStepTrackingRegions, RegionPSet = dict(ptMin = 0.05))
 
+from Configuration.Eras.Modifier_highBetaStar_2023_cff import highBetaStar_2023
+highBetaStar_2023.toModify(detachedTripletStepTrackingRegions, RegionPSet = dict(ptMin = 0.05))
+
 # seeding
 from RecoTracker.TkHitPairs.hitPairEDProducer_cfi import hitPairEDProducer as _hitPairEDProducer
 detachedTripletStepHitDoublets = _hitPairEDProducer.clone(
@@ -110,6 +113,7 @@ trackingPhase1.toReplaceWith(detachedTripletStepHitTriplets, _caHitTripletEDProd
     CAHardPtCut          = 0.2,
 ))
 highBetaStar_2018.toModify(detachedTripletStepHitTriplets,CAThetaCut = 0.002,CAPhiCut = 0.1,CAHardPtCut = 0)
+highBetaStar_2023.toModify(detachedTripletStepHitTriplets,CAThetaCut = 0.002,CAPhiCut = 0.1,CAHardPtCut = 0)
 
 import FastSimulation.Tracking.TrajectorySeedProducer_cfi
 _fastSim_detachedTripletStepSeeds = FastSimulation.Tracking.TrajectorySeedProducer_cfi.trajectorySeedProducer.clone(
@@ -304,6 +308,7 @@ trackdnn.toReplaceWith(detachedTripletStep, trackTfClassifier.clone(
 (pp_on_AA & trackdnn).toModify(detachedTripletStep, qualityCuts =  [-0.32, 0.5, 0.98] )
 
 highBetaStar_2018.toModify(detachedTripletStep,qualityCuts = [-0.5,0.0,0.5])
+highBetaStar_2023.toModify(detachedTripletStep,qualityCuts = [-0.5,0.0,0.5])
 
 # For LowPU
 import RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi

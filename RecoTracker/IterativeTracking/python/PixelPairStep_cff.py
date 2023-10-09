@@ -92,6 +92,12 @@ highBetaStar_2018.toModify(pixelPairStepTrackingRegions,RegionPSet = dict(
      originRadius = 0.2,
      fixedError   = 4.
 ))
+from Configuration.Eras.Modifier_highBetaStar_2023_cff import highBetaStar_2023
+highBetaStar_2023.toModify(pixelPairStepTrackingRegions,RegionPSet = dict(
+     ptMin        = 0.05,
+     originRadius = 0.2,
+     fixedError   = 4.
+))
 fastSim.toModify(pixelPairStepTrackingRegions, RegionPSet=dict(VertexCollection = 'firstStepPrimaryVerticesBeforeMixing'))
 
 # SEEDS
@@ -175,6 +181,10 @@ highBetaStar_2018.toModify(pixelPairStepTrackingRegionsSeedLayersB,RegionPSet = 
      ptMin        = 0.05,
      originRadius = 0.2,
 ))
+highBetaStar_2023.toModify(pixelPairStepTrackingRegionsSeedLayersB,RegionPSet = dict(
+     ptMin        = 0.05,
+     originRadius = 0.2,
+))
 #include commented lines from above in pp_on_XY eras; global seeds (A) are not used in this era b/c timing
 from Configuration.Eras.Modifier_pp_on_XeXe_2017_cff import pp_on_XeXe_2017
 from Configuration.ProcessModifiers.pp_on_AA_cff import pp_on_AA
@@ -230,6 +240,7 @@ trackingPhase2PU140.toReplaceWith(pixelPairStepTrajectoryFilterBase, _pixelPairS
     constantValueForLostHitsFractionFilter = 0.701,
 ))
 highBetaStar_2018.toModify(pixelPairStepTrajectoryFilterBase, minPt = 0.05)
+highBetaStar_2023.toModify(pixelPairStepTrajectoryFilterBase, minPt = 0.05)
 
 import RecoTracker.PixelLowPtUtilities.StripSubClusterShapeTrajectoryFilter_cfi
 pixelPairStepTrajectoryFilterShape = RecoTracker.PixelLowPtUtilities.StripSubClusterShapeTrajectoryFilter_cfi.StripSubClusterShapeTrajectoryFilterTIX12.clone()
@@ -271,6 +282,7 @@ trackingLowPU.toModify(pixelPairStepChi2Est,
     clusterChargeCut = dict(refToPSet_ = 'SiStripClusterChargeCutTiny'),
 )
 highBetaStar_2018.toModify(pixelPairStepChi2Est, MaxChi2 = 30)
+highBetaStar_2023.toModify(pixelPairStepChi2Est, MaxChi2 = 30)
 
 # TRACK BUILDING
 import RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilder_cfi
@@ -382,6 +394,7 @@ trackdnn.toReplaceWith(pixelPairStep, trackTfClassifier.clone(
 ))
 
 highBetaStar_2018.toModify(pixelPairStep,qualityCuts = [-0.95,0.0,0.3])
+highBetaStar_2023.toModify(pixelPairStep,qualityCuts = [-0.95,0.0,0.3])
 pp_on_AA.toModify(pixelPairStep, qualityCuts = [0.85, 0.95, 0.98])
 fastSim.toModify(pixelPairStep, vertices = 'firstStepPrimaryVerticesBeforeMixing')
 

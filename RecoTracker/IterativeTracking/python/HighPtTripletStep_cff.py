@@ -86,6 +86,11 @@ highBetaStar_2018.toModify(highPtTripletStepTrackingRegions,RegionPSet = dict(
      ptMin        = 0.05,
      originRadius = 0.2
 ))
+from Configuration.Eras.Modifier_highBetaStar_2023_cff import highBetaStar_2023
+highBetaStar_2023.toModify(highPtTripletStepTrackingRegions,RegionPSet = dict(
+        ptMin        = 0.05,
+        originRadius = 0.2
+))
 
 
 # seeding
@@ -117,6 +122,7 @@ highPtTripletStepHitTriplets = _caHitTripletEDProducer.clone(
 
 trackingPhase2PU140.toModify(highPtTripletStepHitTriplets,CAThetaCut = 0.003,CAPhiCut = 0.06,CAHardPtCut = 0.5)
 highBetaStar_2018.toModify(highPtTripletStepHitTriplets,CAThetaCut = 0.008,CAPhiCut = 0.14,CAHardPtCut = 0)
+highBetaStar_2023.toModify(highPtTripletStepHitTriplets,CAThetaCut = 0.008,CAPhiCut = 0.14,CAHardPtCut = 0)
 
 from RecoTracker.TkSeedGenerator.seedCreatorFromRegionConsecutiveHitsEDProducer_cff import seedCreatorFromRegionConsecutiveHitsEDProducer as _seedCreatorFromRegionConsecutiveHitsEDProducer
 highPtTripletStepSeeds = _seedCreatorFromRegionConsecutiveHitsEDProducer.clone(
@@ -154,6 +160,7 @@ trackingPhase2PU140.toReplaceWith(highPtTripletStepTrajectoryFilterBase, _highPt
 
 (pp_on_XeXe_2017 | pp_on_AA).toModify(highPtTripletStepTrajectoryFilterBase, minPt=0.7)
 highBetaStar_2018.toModify(highPtTripletStepTrajectoryFilterBase, minPt=0.05)
+highBetaStar_2023.toModify(highPtTripletStepTrajectoryFilterBase, minPt=0.05)
 
 highPtTripletStepTrajectoryFilter = _TrajectoryFilter_cff.CompositeTrajectoryFilter_block.clone(
     filters = [cms.PSet(refToPSet_ = cms.string('highPtTripletStepTrajectoryFilterBase'))]
@@ -172,6 +179,7 @@ highPtTripletStepTrajectoryFilterInOut = highPtTripletStepTrajectoryFilterBase.c
     pixelSeedExtension  = False,
 )
 highBetaStar_2018.toModify(highPtTripletStepTrajectoryFilterInOut, minPt=0.05)
+highBetaStar_2023.toModify(highPtTripletStepTrajectoryFilterInOut, minPt=0.05)
 
 import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi
 highPtTripletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi.Chi2ChargeMeasurementEstimator.clone(
@@ -300,6 +308,7 @@ trackdnn.toReplaceWith(highPtTripletStep, trackTfClassifier.clone(
     qualityCuts = qualityCutDictionary.HighPtTripletStep.value()
 ))
 highBetaStar_2018.toModify(highPtTripletStep,qualityCuts = [-0.2,0.3,0.4])
+highBetaStar_2023.toModify(highPtTripletStep,qualityCuts = [-0.2,0.3,0.4])
 
 fastSim.toModify(highPtTripletStep,vertices = 'firstStepPrimaryVerticesBeforeMixing')
 

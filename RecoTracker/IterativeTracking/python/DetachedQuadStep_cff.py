@@ -54,6 +54,8 @@ from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import g
 from Configuration.Eras.Modifier_highBetaStar_2018_cff import highBetaStar_2018
 highBetaStar_2018.toModify(detachedQuadStepTrackingRegions,RegionPSet = dict(ptMin = 0.05))
 
+from Configuration.Eras.Modifier_highBetaStar_2023_cff import highBetaStar_2023
+highBetaStar_2023.toModify(detachedQuadStepTrackingRegions,RegionPSet = dict(ptMin = 0.05))
 
 # seeding
 from RecoTracker.TkHitPairs.hitPairEDProducer_cfi import hitPairEDProducer as _hitPairEDProducer
@@ -81,6 +83,7 @@ detachedQuadStepHitQuadruplets = _caHitQuadrupletEDProducer.clone(
     CAPhiCut             = 0,
 )
 highBetaStar_2018.toModify(detachedQuadStepHitQuadruplets,CAThetaCut = 0.0022,CAPhiCut = 0.1)
+highBetaStar_2023.toModify(detachedQuadStepHitQuadruplets,CAThetaCut = 0.0022,CAPhiCut = 0.1)
 
 from RecoTracker.TkSeedGenerator.seedCreatorFromRegionConsecutiveHitsTripletOnlyEDProducer_cff import seedCreatorFromRegionConsecutiveHitsTripletOnlyEDProducer as _seedCreatorFromRegionConsecutiveHitsTripletOnlyEDProducer
 detachedQuadStepSeeds = _seedCreatorFromRegionConsecutiveHitsTripletOnlyEDProducer.clone(
@@ -257,6 +260,7 @@ trackdnn.toReplaceWith(detachedQuadStep, trackTfClassifier.clone(
 
 
 highBetaStar_2018.toModify(detachedQuadStep,qualityCuts = [-0.7,0.0,0.5])
+highBetaStar_2023.toModify(detachedQuadStep,qualityCuts = [-0.7,0.0,0.5])
 
 (pp_on_AA & trackdnn).toModify(detachedQuadStep, qualityCuts =  [-0.63, 0.5, 0.94] )
 
