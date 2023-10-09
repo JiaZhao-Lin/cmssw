@@ -122,3 +122,20 @@ highBetaStar_2018.toModify(offlinePrimaryVertices,
      }
 )
 
+from Configuration.Eras.Modifier_highBetaStar_2023_cff import highBetaStar_2023
+highBetaStar_2023.toModify(offlinePrimaryVertices,
+     TkFilterParameters = dict(
+         maxNormalizedChi2 = 80.0,
+         minPixelLayersWithHits = 1,
+         minSiliconLayersWithHits = 3,
+         maxD0Significance = 7.0,
+         maxD0Error = 10.0, 
+         maxDzError = 10.0, 
+         maxEta = 2.5
+     ),
+     vertexCollections = {
+         0: dict(chi2cutoff = 4.0, minNdof = -1.1),
+         1: dict(chi2cutoff = 4.0, minNdof = -2.0),
+     }
+)
+
