@@ -510,13 +510,16 @@ namespace edm {
                             processConfiguration,
                             std::string("PathStatusInserter"));
 
-    makePathStatusInserters(endPathStatusInserters_,
-                            *endPathNames_,
-                            prealloc,
-                            preg,
-                            areg,
-                            processConfiguration,
-                            std::string("EndPathStatusInserter"));
+    if (endPathNames_->size() > 1) {
+      //NOTE: FinalPaths are a type of EndPath
+      makePathStatusInserters(endPathStatusInserters_,
+                              *endPathNames_,
+                              prealloc,
+                              preg,
+                              areg,
+                              processConfiguration,
+                              std::string("EndPathStatusInserter"));
+    }
 
     assert(0 < prealloc.numberOfStreams());
     streamSchedules_.reserve(prealloc.numberOfStreams());
@@ -540,8 +543,8 @@ namespace edm {
     // unknown to the ModuleRegistry
     const std::string kTriggerResults("TriggerResults");
     std::vector<std::string> modulesToUse;
-    modulesToUse.reserve(streamSchedules_[0]->allWorkers().size());
-    for (auto const& worker : streamSchedules_[0]->allWorkers()) {
+    modulesToUse.reserve(streamSchedules_[0]->allWorkersLumisAndEvents().size());
+    for (auto const& worker : streamSchedules_[0]->allWorkersLumisAndEvents()) {
       if (worker->description()->moduleLabel() != kTriggerResults) {
         modulesToUse.push_back(worker->description()->moduleLabel());
       }
@@ -605,7 +608,7 @@ namespace edm {
     // At this point all BranchDescriptions are created. Mark now the
     // ones of unscheduled workers to be on-demand.
     {
-      auto const& unsched = streamSchedules_[0]->unscheduledWorkers();
+      auto const& unsched = streamSchedules_[0]->unscheduledWorkersLumisAndEvents();
       if (not unsched.empty()) {
         std::set<std::string> unscheduledModules;
         std::transform(unsched.begin(),
@@ -640,7 +643,7 @@ namespace edm {
 
     branchIDListHelper.updateFromRegistry(preg);
 
-    for (auto const& worker : streamSchedules_[0]->allWorkers()) {
+    for (auto const& worker : streamSchedules_[0]->allWorkersLumisAndEvents()) {
       worker->registerThinnedAssociations(preg, thinnedAssociationsHelper);
     }
 

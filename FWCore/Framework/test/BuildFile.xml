@@ -271,53 +271,26 @@
 
 <test name="TestXMLSafeException" command="run_XMLException.sh"/>
 
-<bin name="TestFWCoreFrameworkProductSelector" file="ProductSelector_t.cpp">
+<bin name="TestFWCoreFrameworkProductSelector" file="test_catch2_main.cc,ProductSelector_t.cpp">
   <use name="DataFormats/Provenance"/>
   <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/Utilities"/>
+  <use name="catch2"/>
 </bin>
 
-<bin name="TestFWCoreFrameworkEventSelector" file="EventSelector_t.cpp">
+<bin name="TestFWCoreFrameworkEventSelector" file="test_catch2_main.cc,EventSel*_t.cpp">
   <use name="DataFormats/Common"/>
   <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/ServiceRegistry"/>
   <use name="FWCore/Utilities"/>
+  <use name="catch2"/>
 </bin>
 
-<bin name="TestFWCoreFrameworkEventSelWildcard" file="EventSelWildcard_t.cpp">
-  <use name="DataFormats/Common"/>
+<bin name="TestFWCoreTriggerResultsBasedEventSelectorUtilities" file="test_catch2_main.cc,TriggerResultsBasedEventSelectorUtilities_t.cpp">
   <use name="FWCore/Framework"/>
-  <use name="FWCore/ParameterSet"/>
-  <use name="FWCore/ServiceRegistry"/>
-  <use name="FWCore/Utilities"/>
-</bin>
-
-<bin name="TestFWCoreFrameworkEventSelExc" file="EventSelExc_t.cpp">
-  <use name="DataFormats/Common"/>
-  <use name="FWCore/Framework"/>
-  <use name="FWCore/ParameterSet"/>
-  <use name="FWCore/ServiceRegistry"/>
-  <use name="FWCore/Utilities"/>
-</bin>
-
-<bin name="TestFWCoreFrameworkEventSelOverlap" file="EventSelOverlap_t.cpp">
-  <use name="DataFormats/Common"/>
-  <use name="FWCore/Framework"/>
-  <use name="FWCore/ParameterSet"/>
-  <use name="FWCore/ServiceRegistry"/>
-  <use name="FWCore/Utilities"/>
-</bin>
-
-<bin name="TestFWCoreFrameworkRegistryTemplate" file="RegistryTemplate_t.cpp">
-  <use name="DataFormats/Provenance"/>
-  <use name="FWCore/ParameterSet"/>
-  <use name="FWCore/Utilities"/>
-</bin>
-
-<bin name="TestFWCoreOutputModuleUtilities" file="OutputModuleUtilities_t.cpp">
-  <use name="FWCore/Framework"/>
+  <use name="catch2"/>
 </bin>
 
 <bin name="TestFWCoreFrameworkStatemachine" file="statemachine_t.cc">
@@ -358,7 +331,28 @@
 <test name="testFWCoreFrameworkNonEventOrdering" command="test_non_event_ordering.sh"/>
 <test name="testFWCoreFramework1ThreadESPrefetch" command="run_test_1_thread_es_prefetching.sh"/>
 <test name="testFWCoreFrameworkModuleDeletion" command="run_module_delete_tests.sh"/>
+
 <test name="testFWCoreFrameworkExternalWorkOutputModule" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testExternalWorkGlobalOutputModule_cfg.py"/>
+
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathSameProcess" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=sameProcess 2>&amp;1 | grep 'to request a trigger name that does not exist'"/>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathSameProcessAnotherModuleBefore" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=sameProcess --anotherModule=before 2>&amp;1 | grep 'to request a trigger name that does not exist'"/>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathSameProcessAnotherModuleAfter" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=sameProcess --anotherModule=after 2>&amp;1 | grep 'to request a trigger name that does not exist'"/>
+
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlier" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPathEarlier_cfg.py"/>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlierProcess" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=earlierProcess 2>&amp;1 | grep 'to request a trigger name that does not exist'">
+  <flags PRE_TEST="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlier"/>
+</test>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlierProcessBefore" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=earlierProcess --anotherModule=before 2>&amp;1 | grep 'to request a trigger name that does not exist'">
+  <flags PRE_TEST="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlier"/>
+</test>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlierProcessAfter" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=earlierProcess --anotherModule=after 2>&amp;1 | grep 'to request a trigger name that does not exist'">
+  <flags PRE_TEST="testFWCoreFrameworkOutputModuleSelectEventsMissingPathEarlier"/>
+</test>
+
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathMissingProcess" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=missingProcess 2>&amp;1 | grep 'An exception of category .ProductNotFound'"/>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathMissingProcessAnotherModuleBefore" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=missingProcess --anotherModule=before 2>&amp;1 | grep 'An exception of category .ProductNotFound'"/>
+<test name="testFWCoreFrameworkOutputModuleSelectEventsMissingPathMissingProcessAnotherModuleAfter" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/testOutputModuleSelectEventsMissingPath_cfg.py --missingPath=missingProcess --anotherModule=after 2>&amp;1 | grep 'An exception of category .ProductNotFound'"/>
+
 <test name="testFWCoreFrameworkBadScheduleException0" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 0; grep -v 'Fatal Exception' test_bad_schedule_0.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_0.log -"/>
 <test name="testFWCoreFrameworkBadScheduleException1" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 1; grep -v 'Fatal Exception' test_bad_schedule_1.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_1.log -"/>
 <test name="testFWCoreFrameworkBadScheduleException2" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 2; grep -v 'Fatal Exception' test_bad_schedule_2.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_2.log -"/>
@@ -367,6 +361,7 @@
 <test name="testFWCoreFrameworkBadScheduleException5" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 5; grep -v 'Fatal Exception' test_bad_schedule_5.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_5.log -"/>
 <test name="testFWCoreFrameworkBadScheduleException6" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 6; grep -v 'Fatal Exception' test_bad_schedule_6.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_6.log -"/>
 <test name="testFWCoreFrameworkBadScheduleException7" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 7; grep -v 'Fatal Exception' test_bad_schedule_7.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_7.log -"/>
+<test name="testFWCoreFrameworkBadScheduleException8" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_bad_schedule_exception_message_cfg.py 8; grep -v 'Fatal Exception' test_bad_schedule_8.log | diff -q ${LOCALTOP}/src/FWCore/Framework/test/unit_test_outputs/test_bad_schedule_8.log -"/>
 <test name="testFWCoreFrameworkConditionalTask" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_conditionaltasks_cfg.py"/>
 <test name="testFWCoreFrameworkConditionalTask_filterSucceeds" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_conditionaltasks_cfg.py --filterSucceeds"/>
 <test name="testFWCoreFrameworkConditionalTask_reverseDependencies" command="cmsRun ${LOCALTOP}/src/FWCore/Framework/test/test_conditionaltasks_cfg.py --reverseDependencies"/>

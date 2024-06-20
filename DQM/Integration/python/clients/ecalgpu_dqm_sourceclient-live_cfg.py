@@ -4,9 +4,7 @@ import sys
 from Configuration.Eras.Era_Run3_cff import Run3
 process = cms.Process("process", Run3)
 
-unitTest = False
-if 'unitTest=True' in sys.argv:
-    unitTest=True
+unitTest = 'unitTest=True' in sys.argv
 
 ### Load cfis ###
 
@@ -58,7 +56,11 @@ process.maxEvents = cms.untracked.PSet(
 process.preScaler.prescaleFactor = 1
 
 if not options.inputFiles:
-    process.source.streamLabel = cms.untracked.string("streamDQMGPUvsCPU")
+    # stream label
+    if process.runType.getRunType() == process.runType.hi_run:
+        process.source.streamLabel = "streamHIDQMGPUvsCPU"
+    else:
+        process.source.streamLabel = "streamDQMGPUvsCPU"
 
 process.dqmEnv.subSystemFolder = 'Ecal'
 process.dqmSaver.tag = 'EcalGPU'
@@ -77,17 +79,17 @@ process.ecalMonitorTask.commonParameters.onlineMode = True
 # ecalMonitorTask always looks for EcalRawData collection when running, even when not in use
 # Default value is cms.untracked.InputTag("ecalDigis")
 # Tag is changed below to avoid multiple warnings per event
-process.ecalMonitorTask.collectionTags.EcalRawData = cms.untracked.InputTag("hltEcalDigisLegacy")
+process.ecalMonitorTask.collectionTags.EcalRawData = cms.untracked.InputTag("hltEcalDigisSerialSync")
 
 # Streams used for online GPU validation
-process.ecalMonitorTask.collectionTags.EBCpuDigi = cms.untracked.InputTag("hltEcalDigisLegacy", "ebDigis")
-process.ecalMonitorTask.collectionTags.EECpuDigi = cms.untracked.InputTag("hltEcalDigisLegacy", "eeDigis")
-process.ecalMonitorTask.collectionTags.EBGpuDigi = cms.untracked.InputTag("hltEcalDigisFromGPU", "ebDigis")
-process.ecalMonitorTask.collectionTags.EEGpuDigi = cms.untracked.InputTag("hltEcalDigisFromGPU", "eeDigis")
-process.ecalMonitorTask.collectionTags.EBCpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitLegacy", "EcalUncalibRecHitsEB")
-process.ecalMonitorTask.collectionTags.EECpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitLegacy", "EcalUncalibRecHitsEE")
-process.ecalMonitorTask.collectionTags.EBGpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitFromSoA", "EcalUncalibRecHitsEB")
-process.ecalMonitorTask.collectionTags.EEGpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitFromSoA", "EcalUncalibRecHitsEE")
+process.ecalMonitorTask.collectionTags.EBCpuDigi = cms.untracked.InputTag("hltEcalDigisSerialSync", "ebDigis")
+process.ecalMonitorTask.collectionTags.EECpuDigi = cms.untracked.InputTag("hltEcalDigisSerialSync", "eeDigis")
+process.ecalMonitorTask.collectionTags.EBGpuDigi = cms.untracked.InputTag("hltEcalDigis", "ebDigis")
+process.ecalMonitorTask.collectionTags.EEGpuDigi = cms.untracked.InputTag("hltEcalDigis", "eeDigis")
+process.ecalMonitorTask.collectionTags.EBCpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitSerialSync", "EcalUncalibRecHitsEB")
+process.ecalMonitorTask.collectionTags.EECpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHitSerialSync", "EcalUncalibRecHitsEE")
+process.ecalMonitorTask.collectionTags.EBGpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHit", "EcalUncalibRecHitsEB")
+process.ecalMonitorTask.collectionTags.EEGpuUncalibRecHit = cms.untracked.InputTag("hltEcalUncalibRecHit", "EcalUncalibRecHitsEE")
 
 ### Paths ###
 

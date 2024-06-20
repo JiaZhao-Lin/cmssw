@@ -5,7 +5,6 @@
 
 #include "HeterogeneousCore/AlpakaInterface/interface/getDeviceCachingAllocator.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/getHostCachingAllocator.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/traits.h"
 
 namespace cms::alpakatools {
 
@@ -104,7 +103,7 @@ namespace cms::alpakatools {
         auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
 
         return alpaka::BufCudaRt<TElem, TDim, TIdx>(
-            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), pitchBytes, extent);
+            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent, pitchBytes);
       }
     };
 
@@ -180,7 +179,7 @@ namespace cms::alpakatools {
         auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
 
         return alpaka::BufHipRt<TElem, TDim, TIdx>(
-            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), pitchBytes, extent);
+            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent, pitchBytes);
       }
     };
 

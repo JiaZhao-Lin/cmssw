@@ -12,8 +12,8 @@
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
-#include "CLHEP/Units/GlobalPhysicalConstants.h"
-#include "CLHEP/Units/GlobalSystemOfUnits.h"
+#include <CLHEP/Units/GlobalPhysicalConstants.h>
+#include <CLHEP/Units/SystemOfUnits.h>
 
 using namespace std;
 using namespace edm;
@@ -48,12 +48,22 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> sigmatmtdToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> tofkToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> tofpToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofkToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpToken_;
   edm::EDGetTokenT<reco::VertexCollection> vtxsToken_;
-  double vtxMaxSigmaT_;
-  double maxDz_;
-  double maxDtSignificance_;
-  double minProbHeavy_;
-  double fixedT0Error_;
+  edm::EDGetTokenT<edm::ValueMap<float>> trackMTDTimeQualityToken_;
+  const double vtxMaxSigmaT_;
+  const double maxDz_;
+  const double maxDtSignificance_;
+  const double minProbHeavy_;
+  const double fixedT0Error_;
+  const double probPion_;
+  const double probKaon_;
+  const double probProton_;
+  const double minTrackTimeQuality_;
+  const bool MVASel_;
+  const bool vertexReassignment_;
 };
 
 TOFPIDProducer::TOFPIDProducer(const ParameterSet& iConfig)
@@ -64,12 +74,23 @@ TOFPIDProducer::TOFPIDProducer(const ParameterSet& iConfig)
       sigmatmtdToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatmtdSrc"))),
       tofkToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("tofkSrc"))),
       tofpToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("tofpSrc"))),
+      sigmatofpiToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofpiSrc"))),
+      sigmatofkToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofkSrc"))),
+      sigmatofpToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofpSrc"))),
       vtxsToken_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vtxsSrc"))),
+      trackMTDTimeQualityToken_(
+          consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"))),
       vtxMaxSigmaT_(iConfig.getParameter<double>("vtxMaxSigmaT")),
       maxDz_(iConfig.getParameter<double>("maxDz")),
       maxDtSignificance_(iConfig.getParameter<double>("maxDtSignificance")),
       minProbHeavy_(iConfig.getParameter<double>("minProbHeavy")),
-      fixedT0Error_(iConfig.getParameter<double>("fixedT0Error")) {
+      fixedT0Error_(iConfig.getParameter<double>("fixedT0Error")),
+      probPion_(iConfig.getParameter<double>("probPion")),
+      probKaon_(iConfig.getParameter<double>("probKaon")),
+      probProton_(iConfig.getParameter<double>("probProton")),
+      minTrackTimeQuality_(iConfig.getParameter<double>("minTrackTimeQuality")),
+      MVASel_(iConfig.getParameter<bool>("MVASel")),
+      vertexReassignment_(iConfig.getParameter<bool>("vertexReassignment")) {
   produces<edm::ValueMap<float>>(t0Name);
   produces<edm::ValueMap<float>>(sigmat0Name);
   produces<edm::ValueMap<float>>(t0safeName);
@@ -95,8 +116,16 @@ void TOFPIDProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
       ->setComment("Input ValueMap for track tof as kaon");
   desc.add<edm::InputTag>("tofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackTofP"))
       ->setComment("Input ValueMap for track tof as proton");
+  desc.add<edm::InputTag>("sigmatofpiSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"))
+      ->setComment("Input ValueMap for track sigma(tof) as pion");
+  desc.add<edm::InputTag>("sigmatofkSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"))
+      ->setComment("Input ValueMap for track sigma(tof) as kaon");
+  desc.add<edm::InputTag>("sigmatofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"))
+      ->setComment("Input ValueMap for track sigma(tof) as proton");
   desc.add<edm::InputTag>("vtxsSrc", edm::InputTag("unsortedOfflinePrimaryVertices4DwithPID"))
       ->setComment("Input primary vertex collection");
+  desc.add<edm::InputTag>("trackMTDTimeQualityVMapTag", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"))
+      ->setComment("Track MVA quality value");
   desc.add<double>("vtxMaxSigmaT", 0.025)
       ->setComment("Maximum primary vertex time uncertainty for use in particle id [ns]");
   desc.add<double>("maxDz", 0.1)
@@ -107,6 +136,12 @@ void TOFPIDProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   desc.add<double>("minProbHeavy", 0.75)
       ->setComment("Minimum probability for a particle to be a kaon or proton before reassigning the timestamp");
   desc.add<double>("fixedT0Error", 0.)->setComment("Use a fixed T0 uncertainty [ns]");
+  desc.add<double>("probPion", 1.)->setComment("A priori probability pions");
+  desc.add<double>("probKaon", 1.)->setComment("A priori probability kaons");
+  desc.add<double>("probProton", 1.)->setComment("A priori probability for protons");
+  desc.add<double>("minTrackTimeQuality", 0.8)->setComment("Minimum MVA Quality selection on tracks");
+  desc.add<bool>("MVASel", false)->setComment("Use MVA Quality selection");
+  desc.add<bool>("vertexReassignment", true)->setComment("Track-vertex reassignment");
 
   descriptions.add("tofPIDProducer", desc);
 }
@@ -140,7 +175,15 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
   const auto& tofpIn = ev.get(tofpToken_);
 
+  const auto& sigmatofpiIn = ev.get(sigmatofpiToken_);
+
+  const auto& sigmatofkIn = ev.get(sigmatofkToken_);
+
+  const auto& sigmatofpIn = ev.get(sigmatofpToken_);
+
   const auto& vtxs = ev.get(vtxsToken_);
+
+  const auto& trackMVAQualIn = ev.get(trackMTDTimeQualityToken_);
 
   //output value maps (PID probabilities and recalculated time at beamline)
   std::vector<float> t0OutRaw;
@@ -160,14 +203,21 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     float sigmat0safe = sigmat0In[trackref];
     float sigmatmtd = (sigmatmtdIn[trackref] > 0. && fixedT0Error_ > 0.) ? fixedT0Error_ : sigmatmtdIn[trackref];
     float sigmat0 = sigmatmtd;
+    float sigmatofpi = sigmatofpiIn[trackref];
+    float sigmatofk = sigmatofkIn[trackref];
+    float sigmatofp = sigmatofpIn[trackref];
 
     float prob_pi = -1.;
     float prob_k = -1.;
     float prob_p = -1.;
 
-    if (sigmat0 > 0.) {
+    float trackMVAQual = trackMVAQualIn[trackref];
+
+    if (sigmat0 > 0. && (!MVASel_ || (MVASel_ && trackMVAQual >= minTrackTimeQuality_))) {
       double rsigmazsq = 1. / track.dzError() / track.dzError();
-      double rsigmat = 1. / sigmatmtd;
+      std::array<double, 3> rsigmat = {{1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofpi * sigmatofpi),
+                                        1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofk * sigmatofk),
+                                        1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofp * sigmatofp)}};
 
       //find associated vertex
       int vtxidx = -1;
@@ -190,7 +240,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         }
         if (vtx.tError() > 0. && vtx.tError() < vtxMaxSigmaT_) {
           double dt = std::abs(t0 - vtx.t());
-          double dtsig = dt * rsigmat;
+          double dtsig = dt * rsigmat[0];  //pion hp. uncertainty
           double chisq = dz * dz * rsigmazsq + dtsig * dtsig;
           if (dz < maxDz_ && dtsig < maxDtSignificance_ && chisq < minchisq) {
             minchisq = chisq;
@@ -218,15 +268,15 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         const reco::Vertex& vtxnom = vtxs[vtxidx];
         double dznom = std::abs(track.dz(vtxnom.position()));
         double dtnom = std::abs(t0 - vtxnom.t());
-        double dtsignom = dtnom * rsigmat;
+        double dtsignom = dtnom * rsigmat[0];
         double chisqnom = dznom * dznom * rsigmazsq + dtsignom * dtsignom;
 
         //recompute t0 for alternate mass hypotheses
         double t0_best = t0;
 
-        //reliable match, revert to raw mtd time uncertainty
+        //reliable match, revert to raw mtd time uncertainty + tof uncertainty for pion hp
         if (dtsignom < maxDtSignificance_) {
-          sigmat0safe = sigmatmtd;
+          sigmat0safe = 1. / rsigmat[0];
         }
 
         double tmtd = tmtdIn[trackref];
@@ -239,7 +289,12 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         double chisqmin_k = std::numeric_limits<double>::max();
         double chisqmin_p = std::numeric_limits<double>::max();
         //loop through vertices and check for better matches
-        for (const reco::Vertex& vtx : vtxs) {
+        for (unsigned int ivtx = 0; ivtx < vtxs.size(); ++ivtx) {
+          const reco::Vertex& vtx = vtxs[ivtx];
+          if (!vertexReassignment_) {
+            if (ivtx != (unsigned int)vtxidx)
+              continue;
+          }
           if (!(vtx.tError() > 0. && vtx.tError() < vtxMaxSigmaT_)) {
             continue;
           }
@@ -252,7 +307,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
           double chisqdz = dz * dz * rsigmazsq;
 
           double dt_k = std::abs(t0_k - vtx.t());
-          double dtsig_k = dt_k * rsigmat;
+          double dtsig_k = dt_k * rsigmat[1];
           double chisq_k = chisqdz + dtsig_k * dtsig_k;
 
           if (dtsig_k < maxDtSignificance_ && chisq_k < chisqmin_k) {
@@ -260,7 +315,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
           }
 
           double dt_p = std::abs(t0_p - vtx.t());
-          double dtsig_p = dt_p * rsigmat;
+          double dtsig_p = dt_p * rsigmat[2];
           double chisq_p = chisqdz + dtsig_p * dtsig_p;
 
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin_p) {
@@ -271,21 +326,21 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
             chisqmin = chisq_k;
             t0_best = t0_k;
             t0safe = t0_k;
-            sigmat0safe = sigmatmtd;
+            sigmat0safe = 1. / rsigmat[1];
           }
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin) {
             chisqmin = chisq_p;
             t0_best = t0_p;
             t0safe = t0_p;
-            sigmat0safe = sigmatmtd;
+            sigmat0safe = 1. / rsigmat[2];
           }
         }
 
         //compute PID probabilities
         //*TODO* deal with heavier nucleons and/or BSM case here?
-        double rawprob_pi = exp(-0.5 * chisqmin_pi);
-        double rawprob_k = exp(-0.5 * chisqmin_k);
-        double rawprob_p = exp(-0.5 * chisqmin_p);
+        double rawprob_pi = probPion_ * exp(-0.5 * chisqmin_pi);
+        double rawprob_k = probKaon_ * exp(-0.5 * chisqmin_k);
+        double rawprob_p = probProton_ * exp(-0.5 * chisqmin_p);
 
         double normprob = 1. / (rawprob_pi + rawprob_k + rawprob_p);
 

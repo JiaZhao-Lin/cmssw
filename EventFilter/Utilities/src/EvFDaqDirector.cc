@@ -24,12 +24,14 @@
 #include <unistd.h>
 #include <cstdio>
 #include <boost/algorithm/string.hpp>
+#include <fmt/printf.h>
 
 //using boost::asio::ip::tcp;
 
 //#define DEBUG
 
 using namespace jsoncollector;
+using namespace edm::streamer;
 
 namespace evf {
 
@@ -43,16 +45,13 @@ namespace evf {
         bu_base_dirs_nSources_(pset.getUntrackedParameter<std::vector<int>>("buBaseDirsNumStreams")),
         run_(pset.getUntrackedParameter<unsigned int>("runNumber")),
         useFileBroker_(pset.getUntrackedParameter<bool>("useFileBroker")),
-        fileBrokerHostFromCfg_(pset.getUntrackedParameter<bool>("fileBrokerHostFromCfg", true)),
+        fileBrokerHostFromCfg_(pset.getUntrackedParameter<bool>("fileBrokerHostFromCfg", false)),
         fileBrokerHost_(pset.getUntrackedParameter<std::string>("fileBrokerHost", "InValid")),
         fileBrokerPort_(pset.getUntrackedParameter<std::string>("fileBrokerPort", "8080")),
         fileBrokerKeepAlive_(pset.getUntrackedParameter<bool>("fileBrokerKeepAlive", true)),
         fileBrokerUseLocalLock_(pset.getUntrackedParameter<bool>("fileBrokerUseLocalLock", true)),
         fuLockPollInterval_(pset.getUntrackedParameter<unsigned int>("fuLockPollInterval", 2000)),
         outputAdler32Recheck_(pset.getUntrackedParameter<bool>("outputAdler32Recheck", false)),
-        requireTSPSet_(pset.getUntrackedParameter<bool>("requireTransfersPSet", false)),
-        selectedTransferMode_(pset.getUntrackedParameter<std::string>("selectedTransferMode", "")),
-        mergeTypePset_(pset.getUntrackedParameter<std::string>("mergingPset", "")),
         directorBU_(pset.getUntrackedParameter<bool>("directorIsBU", false)),
         hltSourceDirectory_(pset.getUntrackedParameter<std::string>("hltSourceDirectory", "")),
         hostname_(""),
@@ -73,7 +72,6 @@ namespace evf {
         fu_rw_flk(make_flock(F_WRLCK, SEEK_SET, 0, 0, getpid())),
         fu_rw_fulk(make_flock(F_UNLCK, SEEK_SET, 0, 0, getpid())) {
     reg.watchPreallocate(this, &EvFDaqDirector::preallocate);
-    reg.watchPreBeginJob(this, &EvFDaqDirector::preBeginJob);
     reg.watchPreGlobalBeginRun(this, &EvFDaqDirector::preBeginRun);
     reg.watchPostGlobalEndRun(this, &EvFDaqDirector::postEndRun);
     reg.watchPreGlobalEndLumi(this, &EvFDaqDirector::preGlobalEndLumi);
@@ -290,6 +288,9 @@ namespace evf {
       auto waitForDir = [=](std::string const& bu_base_dir) -> void {
         int cnt = 0;
         while (!edm::shutdown_flag.load(std::memory_order_relaxed)) {
+          //stat should trigger autofs mount (mkdir could fail with access denied first time)
+          struct stat statbuf;
+          stat(bu_base_dir.c_str(), &statbuf);
           int retval = mkdir(bu_base_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
           if (retval != 0 && errno != EEXIST) {
             usleep(500000);
@@ -299,15 +300,17 @@ namespace evf {
             if (cnt > 120)
               throw cms::Exception("DaqDirector") << " Error checking for bu base dir after 1 minute -: " << bu_base_dir
                                                   << " mkdir error:" << strerror(errno);
+            continue;
           }
           break;
         }
       };
 
       if (!bu_base_dirs_all_.empty()) {
-        checkExists(bu_base_dirs_all_[0]);
-        bu_run_dir_ = bu_base_dirs_all_[0] + "/" + run_string_;
-        for (unsigned int i = 1; i < bu_base_dirs_all_.size(); i++)
+        std::string check_dir = bu_base_dir_.empty() ? bu_base_dirs_all_[0] : bu_base_dir_;
+        checkExists(check_dir);
+        bu_run_dir_ = check_dir + "/" + run_string_;
+        for (unsigned int i = 0; i < bu_base_dirs_all_.size(); i++)
           waitForDir(bu_base_dirs_all_[i]);
       } else {
         checkExists(bu_base_dir_);
@@ -400,20 +403,11 @@ namespace evf {
         ->setComment("Lock polling interval in microseconds for the input directory file lock");
     desc.addUntracked<bool>("outputAdler32Recheck", false)
         ->setComment("Check Adler32 of per-process output files while micro-merging");
-    desc.addUntracked<bool>("requireTransfersPSet", false)
-        ->setComment("Require complete transferSystem PSet in the process configuration");
-    desc.addUntracked<std::string>("selectedTransferMode", "")
-        ->setComment("Selected transfer mode (choice in Lvl0 propagated as Python parameter");
     desc.addUntracked<bool>("directorIsBU", false)->setComment("BU director mode used for testing");
     desc.addUntracked<std::string>("hltSourceDirectory", "")->setComment("BU director mode source directory");
     desc.addUntracked<std::string>("mergingPset", "")
         ->setComment("Name of merging PSet to look for merging type definitions for streams");
     descriptions.add("EvFDaqDirector", desc);
-  }
-
-  void EvFDaqDirector::preBeginJob(edm::PathsAndConsumesOfModulesBase const&, edm::ProcessContext const& pc) {
-    checkTransferSystemPSet(pc);
-    checkMergeTypePSet(pc);
   }
 
   void EvFDaqDirector::preBeginRun(edm::GlobalContext const& globalContext) {
@@ -844,7 +838,7 @@ namespace evf {
                                 bool& setExceptionState) {
     if (previousFileSize_ != 0) {
       if (!fms_) {
-        fms_ = (FastMonitoringService*)(edm::Service<evf::MicroStateService>().operator->());
+        fms_ = (FastMonitoringService*)(edm::Service<evf::FastMonitoringService>().operator->());
       }
       if (fms_)
         fms_->accumulateFileSize(ls, previousFileSize_);
@@ -1557,6 +1551,7 @@ namespace evf {
                                                                int maxLS) {
     EvFDaqDirector::FileStatus fileStatus = noFile;
     serverError = false;
+    std::string dest = fmt::sprintf(" on connection to %s:%s", fileBrokerHost_, fileBrokerPort_);
 
     boost::system::error_code ec;
     try {
@@ -1566,7 +1561,7 @@ namespace evf {
           boost::asio::connect(*socket_, *endpoint_iterator_, ec);
 
           if (ec) {
-            edm::LogWarning("EvFDaqDirector") << "boost::asio::connect error -:" << ec;
+            edm::LogWarning("EvFDaqDirector") << "boost::asio::connect error -:" << ec << dest;
             serverError = true;
             break;
           }
@@ -1589,17 +1584,17 @@ namespace evf {
         boost::asio::write(*socket_, request, ec);
         if (ec) {
           if (fileBrokerKeepAlive_ && ec == boost::asio::error::connection_reset) {
-            edm::LogInfo("EvFDaqDirector") << "reconnecting socket on received connection_reset";
+            edm::LogInfo("EvFDaqDirector") << "reconnecting socket on received connection_reset" << dest;
             //we got disconnected, try to reconnect to the server before writing the request
             boost::asio::connect(*socket_, *endpoint_iterator_, ec);
             if (ec) {
-              edm::LogWarning("EvFDaqDirector") << "boost::asio::connect error -:" << ec;
+              edm::LogWarning("EvFDaqDirector") << "boost::asio::connect error -:" << ec << dest;
               serverError = true;
               break;
             }
             continue;
           }
-          edm::LogWarning("EvFDaqDirector") << "boost::asio::write error -:" << ec;
+          edm::LogWarning("EvFDaqDirector") << "boost::asio::write error -:" << ec << dest;
           serverError = true;
           break;
         }
@@ -1607,7 +1602,7 @@ namespace evf {
         boost::asio::streambuf response;
         boost::asio::read_until(*socket_, response, "\r\n", ec);
         if (ec) {
-          edm::LogWarning("EvFDaqDirector") << "boost::asio::read_until error -:" << ec;
+          edm::LogWarning("EvFDaqDirector") << "boost::asio::read_until error -:" << ec << dest;
           serverError = true;
           break;
         }
@@ -1776,7 +1771,7 @@ namespace evf {
           while (boost::asio::read(*socket_, response, boost::asio::transfer_at_least(1), ec)) {
           }
           if (ec != boost::asio::error::eof) {
-            edm::LogWarning("EvFDaqDirector") << "boost::asio::read_until error -:" << ec;
+            edm::LogWarning("EvFDaqDirector") << "boost::asio::read_until error -:" << ec << dest;
             serverError = true;
           }
         }
@@ -1792,11 +1787,11 @@ namespace evf {
     if (!fileBrokerKeepAlive_ && socket_->is_open()) {
       socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
       if (ec) {
-        edm::LogWarning("EvFDaqDirector") << "socket shutdown error -:" << ec;
+        edm::LogWarning("EvFDaqDirector") << "socket shutdown error -:" << ec << dest;
       }
       socket_->close(ec);
       if (ec) {
-        edm::LogWarning("EvFDaqDirector") << "socket close error -:" << ec;
+        edm::LogWarning("EvFDaqDirector") << "socket close error -:" << ec << dest;
       }
     }
 
@@ -1804,7 +1799,7 @@ namespace evf {
       if (socket_->is_open())
         socket_->close(ec);
       if (ec) {
-        edm::LogWarning("EvFDaqDirector") << "socket close error -:" << ec;
+        edm::LogWarning("EvFDaqDirector") << "socket close error -:" << ec << dest;
       }
       fileStatus = noFile;
       sleep(1);  //back-off if error detected
@@ -2002,146 +1997,6 @@ namespace evf {
   }
 
   //if transferSystem PSet is present in the menu, we require it to be complete and consistent for all specified streams
-  void EvFDaqDirector::checkTransferSystemPSet(edm::ProcessContext const& pc) {
-    if (transferSystemJson_)
-      return;
-
-    transferSystemJson_.reset(new Json::Value);
-    edm::ParameterSet const& topPset = edm::getParameterSet(pc.parameterSetID());
-    if (topPset.existsAs<edm::ParameterSet>("transferSystem", true)) {
-      const edm::ParameterSet& tsPset(topPset.getParameterSet("transferSystem"));
-
-      Json::Value destinationsVal(Json::arrayValue);
-      std::vector<std::string> destinations = tsPset.getParameter<std::vector<std::string>>("destinations");
-      for (auto& dest : destinations)
-        destinationsVal.append(dest);
-      (*transferSystemJson_)["destinations"] = destinationsVal;
-
-      Json::Value modesVal(Json::arrayValue);
-      std::vector<std::string> modes = tsPset.getParameter<std::vector<std::string>>("transferModes");
-      for (auto& mode : modes)
-        modesVal.append(mode);
-      (*transferSystemJson_)["transferModes"] = modesVal;
-
-      for (auto psKeyItr = tsPset.psetTable().begin(); psKeyItr != tsPset.psetTable().end(); ++psKeyItr) {
-        if (psKeyItr->first != "destinations" && psKeyItr->first != "transferModes") {
-          const edm::ParameterSet& streamDef = tsPset.getParameterSet(psKeyItr->first);
-          Json::Value streamVal;
-          for (auto& mode : modes) {
-            //validation
-            if (!streamDef.existsAs<std::vector<std::string>>(mode, true))
-              throw cms::Exception("EvFDaqDirector")
-                  << " Missing transfer system specification for -:" << psKeyItr->first << " (transferMode " << mode
-                  << ")";
-            std::vector<std::string> streamDestinations = streamDef.getParameter<std::vector<std::string>>(mode);
-
-            Json::Value sDestsValue(Json::arrayValue);
-
-            if (streamDestinations.empty())
-              throw cms::Exception("EvFDaqDirector")
-                  << " Missing transter system destination(s) for -: " << psKeyItr->first << ", mode:" << mode;
-
-            for (auto& sdest : streamDestinations) {
-              bool sDestValid = false;
-              sDestsValue.append(sdest);
-              for (auto& dest : destinations) {
-                if (dest == sdest)
-                  sDestValid = true;
-              }
-              if (!sDestValid)
-                throw cms::Exception("EvFDaqDirector")
-                    << " Invalid transter system destination specified for -: " << psKeyItr->first << ", mode:" << mode
-                    << ", dest:" << sdest;
-            }
-            streamVal[mode] = sDestsValue;
-          }
-          (*transferSystemJson_)[psKeyItr->first] = streamVal;
-        }
-      }
-    } else {
-      if (requireTSPSet_)
-        throw cms::Exception("EvFDaqDirector") << "transferSystem PSet not found";
-    }
-  }
-
-  std::string EvFDaqDirector::getStreamDestinations(std::string const& stream) const {
-    std::string streamRequestName;
-    if (transferSystemJson_->isMember(stream.c_str()))
-      streamRequestName = stream;
-    else {
-      std::stringstream msg;
-      msg << "Transfer system mode definitions missing for -: " << stream;
-      if (requireTSPSet_)
-        throw cms::Exception("EvFDaqDirector") << msg.str();
-      else {
-        edm::LogWarning("EvFDaqDirector") << msg.str() << " (permissive mode)";
-        return std::string("Failsafe");
-      }
-    }
-    //return empty if strict check parameter is not on
-    if (!requireTSPSet_ && (selectedTransferMode_.empty() || selectedTransferMode_ == "null")) {
-      edm::LogWarning("EvFDaqDirector")
-          << "Selected mode string is not provided as DaqDirector parameter."
-          << "Switch on requireTSPSet parameter to enforce this requirement. Setting mode to empty string.";
-      return std::string("Failsafe");
-    }
-    if (requireTSPSet_ && (selectedTransferMode_.empty() || selectedTransferMode_ == "null")) {
-      throw cms::Exception("EvFDaqDirector") << "Selected mode string is not provided as DaqDirector parameter.";
-    }
-    //check if stream has properly listed transfer stream
-    if (!transferSystemJson_->get(streamRequestName, "").isMember(selectedTransferMode_.c_str())) {
-      std::stringstream msg;
-      msg << "Selected transfer mode " << selectedTransferMode_ << " is not specified for stream " << streamRequestName;
-      if (requireTSPSet_)
-        throw cms::Exception("EvFDaqDirector") << msg.str();
-      else
-        edm::LogWarning("EvFDaqDirector") << msg.str() << " (permissive mode)";
-      return std::string("Failsafe");
-    }
-    Json::Value destsVec = transferSystemJson_->get(streamRequestName, "").get(selectedTransferMode_, "");
-
-    //flatten string json::Array into CSV std::string
-    std::string ret;
-    for (Json::Value::iterator it = destsVec.begin(); it != destsVec.end(); it++) {
-      if (!ret.empty())
-        ret += ",";
-      ret += (*it).asString();
-    }
-    return ret;
-  }
-
-  void EvFDaqDirector::checkMergeTypePSet(edm::ProcessContext const& pc) {
-    if (mergeTypePset_.empty())
-      return;
-    if (!mergeTypeMap_.empty())
-      return;
-    edm::ParameterSet const& topPset = edm::getParameterSet(pc.parameterSetID());
-    if (topPset.existsAs<edm::ParameterSet>(mergeTypePset_, true)) {
-      const edm::ParameterSet& tsPset(topPset.getParameterSet(mergeTypePset_));
-      for (const std::string& pname : tsPset.getParameterNames()) {
-        std::string streamType = tsPset.getParameter<std::string>(pname);
-        tbb::concurrent_hash_map<std::string, std::string>::accessor ac;
-        mergeTypeMap_.insert(ac, pname);
-        ac->second = streamType;
-        ac.release();
-      }
-    }
-  }
-
-  std::string EvFDaqDirector::getStreamMergeType(std::string const& stream, MergeType defaultType) {
-    tbb::concurrent_hash_map<std::string, std::string>::const_accessor search_ac;
-    if (mergeTypeMap_.find(search_ac, stream))
-      return search_ac->second;
-
-    edm::LogInfo("EvFDaqDirector") << " No merging type specified for stream " << stream << ". Using default value";
-    std::string defaultName = MergeTypeNames_[defaultType];
-    tbb::concurrent_hash_map<std::string, std::string>::accessor ac;
-    mergeTypeMap_.insert(ac, stream);
-    ac->second = defaultName;
-    ac.release();
-    return defaultName;
-  }
-
   void EvFDaqDirector::createProcessingNotificationMaybe() const {
     std::string proc_flag = run_dir_ + "/processing";
     int proc_flag_fd = open(proc_flag.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IWGRP | S_IRGRP | S_IWOTH | S_IROTH);

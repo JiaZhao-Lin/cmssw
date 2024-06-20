@@ -1,8 +1,7 @@
 #include "Alignment/CocoaToDDL/interface/UnitConverter.h"
 #include "Alignment/CocoaToDDL/interface/CocoaUnitsTable.h"
-#include "CLHEP/Units/GlobalSystemOfUnits.h"
+#include <CLHEP/Units/SystemOfUnits.h>
 #include <sstream>
-#include <strstream>
 
 /*
 UnitConverter::UnitConverter(const G4BestUnit & bu)
@@ -23,11 +22,11 @@ UnitConverter::UnitConverter(ALIdouble val, const ALIstring& category)
 UnitConverter::~UnitConverter() { delete bu_; }
 
 std::string UnitConverter::ucstring() {
-  std::ostrstream str;
+  std::ostringstream str;
 
   if (angl_) {
     str.precision(11);
-    double x = (*(bu_->GetValue())) / deg;
+    double x = (*(bu_->GetValue())) / CLHEP::deg;
     str << x << std::string("*deg") << '\0';
     return std::string(str.str());
 
@@ -42,7 +41,7 @@ std::string UnitConverter::ucstring() {
 /*
 ostream & operator<<(ostream & os, const UnitConverter & uc)
 {
-  ostrstream temp;
+  std::ostringstream temp;
   //temp << uc.bu_;
   //temp << '\0';
   //string s(temp.str());

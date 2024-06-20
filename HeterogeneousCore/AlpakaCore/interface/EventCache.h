@@ -10,6 +10,7 @@
 #include "FWCore/Utilities/interface/ReusableObjectHolder.h"
 #include "FWCore/Utilities/interface/thread_safety_macros.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
+#include "HeterogeneousCore/AlpakaInterface/interface/devices.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/AlpakaServiceFwd.h"
 
 namespace cms::alpakatools {
@@ -31,11 +32,11 @@ namespace cms::alpakatools {
 #endif
 
     using Device = alpaka::Dev<Event>;
-    using Platform = alpaka::Pltf<Device>;
+    using Platform = alpaka::Platform<Device>;
 
     // EventCache should be constructed by the first call to
     // getEventCache() only if we have any devices present
-    EventCache() : cache_(alpaka::getDevCount<Platform>()) {}
+    EventCache() : cache_(devices<Platform>().size()) {}
 
     // Gets a (cached) event for the current device. The event
     // will be returned to the cache by the shared_ptr destructor. The
@@ -68,7 +69,11 @@ namespace cms::alpakatools {
 
   private:
     std::shared_ptr<Event> makeOrGet(Device dev) {
-      return cache_[alpaka::getNativeHandle(dev)].makeOrGet([dev]() { return std::make_unique<Event>(dev); });
+      return cache_[alpaka::getNativeHandle(dev)].makeOrGet([dev]() {
+        // We want non-busy waits
+        bool constexpr busyWait = false;
+        return std::make_unique<Event>(dev, busyWait);
+      });
     }
 
     // not thread safe, intended to be called only from AlpakaService
@@ -79,7 +84,7 @@ namespace cms::alpakatools {
       // EventCache lives through multiple tests (and go through
       // multiple shutdowns of the framework).
       cache_.clear();
-      cache_.resize(alpaka::getDevCount<Platform>());
+      cache_.resize(devices<Platform>().size());
     }
 
     std::vector<edm::ReusableObjectHolder<Event>> cache_;

@@ -64,8 +64,6 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
                                   const MuonGeometryTokens& muonGeometryTokens,
                                   const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord>& magneticFieldEsToken,
                                   const edm::ESGetToken<Propagator, TrackingComponentsRecord>& propagatorEsToken) {
-  const L1TMuonOverlapParams* omtfParams = nullptr;
-
   std::string processorType = "OMTFProcessor";  //GoldenPatternWithStat GoldenPattern
   if (edmParameterSet.exists("processorType")) {
     processorType = edmParameterSet.getParameter<std::string>("processorType");
@@ -73,22 +71,29 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
 
   bool buildPatternsFromXml = (edmParameterSet.exists("patternsXMLFile") || edmParameterSet.exists("patternsXMLFiles"));
 
+  bool readConfigFromXml = edmParameterSet.exists("configXMLFile");
+
+  if (buildPatternsFromXml != readConfigFromXml)
+    throw cms::Exception(
+        "OMTFReconstruction::beginRun: buildPatternsFromXml != readConfigFromXml -  both patternsXMLFiles and "
+        "configXMLFile should be defined (or not) for the simOmtDigis or simOmtfPhase2Digis");
+
   edm::LogVerbatim("OMTFReconstruction") << "OMTFReconstruction::beginRun " << run.id()
                                          << " buildPatternsFromXml: " << buildPatternsFromXml << std::endl;
 
   //if the buildPatternsFromXml == false - we are making the omtfConfig and omtfProc for every run,
   //as the configuration my change between the runs,
-  //if buildPatternsFromXml == true - we assume the the entire configuration comes from phyton,
-  //so we do it only for the first run
-  if (omtfProc == nullptr || buildPatternsFromXml == false) {
+  if (buildPatternsFromXml == false) {
     if (omtfParamsRecordWatcher.check(eventSetup)) {
       edm::LogVerbatim("OMTFReconstruction") << "retrieving omtfParams from EventSetup" << std::endl;
 
-      omtfParams = &(eventSetup.getData(omtfParamsEsToken));
-      if (!omtfParams) {
-        edm::LogError("OMTFReconstruction") << "Could not retrieve parameters from Event Setup" << std::endl;
+      const L1TMuonOverlapParams* omtfParamsFromES = &(eventSetup.getData(omtfParamsEsToken));
+      if (!omtfParamsFromES) {
+        edm::LogError("OMTFReconstruction") << "Could not retrieve omtfParams from Event Setup" << std::endl;
+        throw cms::Exception("OMTFReconstruction::beginRun: Could not retrieve omtfParams from Event Setup");
       }
-      omtfConfig->configure(omtfParams);
+
+      omtfConfig->configure(omtfParamsFromES);
 
       //the parameters can be overwritten from the python config
       omtfConfig->configureFromEdmParameterSet(edmParameterSet);
@@ -96,19 +101,45 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
       inputMaker->initialize(edmParameterSet, eventSetup, muonGeometryTokens);
 
       //patterns from the edm::EventSetup are reloaded every beginRun
-      if (buildPatternsFromXml == false) {
-        edm::LogVerbatim("OMTFReconstruction") << "getting patterns from EventSetup" << std::endl;
-        if (processorType == "OMTFProcessor") {
-          omtfProc = std::make_unique<OMTFProcessor<GoldenPattern> >(
-              omtfConfig.get(), edmParameterSet, eventSetup, omtfParams);
-          omtfProc->printInfo();
-        }
+      //therefore OMTFProcessor is re-created here
+      edm::LogVerbatim("OMTFReconstruction") << "getting patterns from EventSetup" << std::endl;
+      if (processorType == "OMTFProcessor") {
+        omtfProc = std::make_unique<OMTFProcessor<GoldenPattern> >(
+            omtfConfig.get(), edmParameterSet, eventSetup, omtfParamsFromES);
+        omtfProc->printInfo();
       }
     }
   }
 
-  //if we read the patterns directly from the xml, we do it only once, at the beginning of the first run, not every run
+  //if buildPatternsFromXml == true - the entire configuration (patterns and hwToLogicLayer) comes from phyton,
+  //so we read it only once, at the beginning of the first run, not every run
   if (omtfProc == nullptr && buildPatternsFromXml) {
+    std::string fName = edmParameterSet.getParameter<edm::FileInPath>("configXMLFile").fullPath();
+
+    edm::LogVerbatim("OMTFReconstruction")
+        << "OMTFReconstruction::beginRun - reading config from file: " << fName << std::endl;
+
+    XMLConfigReader xmlConfigReader;
+    xmlConfigReader.setConfigFile(fName);
+
+    omtfParams.reset(new L1TMuonOverlapParams());
+    xmlConfigReader.readConfig(omtfParams.get());
+
+    //getPatternsVersion() parses the entire patterns xml - si it is very inefficient
+    //moreover, PatternsVersion is not used anywhere
+    //Therefore we we dont use xmlPatternReader.getPatternsVersion(); but set patternsVersion to 0
+    unsigned int patternsVersion = 0;
+    unsigned int fwVersion = omtfParams->fwVersion();
+    omtfParams->setFwVersion((fwVersion << 16) + patternsVersion);
+
+    omtfConfig->configure(omtfParams.get());
+
+    //the parameters can be overwritten from the python config
+    omtfConfig->configureFromEdmParameterSet(edmParameterSet);
+
+    inputMaker->initialize(edmParameterSet, eventSetup, muonGeometryTokens);
+
+    //reading patterns from the xml----------------------------------------------------------
     std::vector<std::string> patternsXMLFiles;
 
     if (edmParameterSet.exists("patternsXMLFile")) {
@@ -122,8 +153,6 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
     for (auto& patternsXMLFile : patternsXMLFiles)
       edm::LogVerbatim("OMTFReconstruction") << "reading patterns from " << patternsXMLFile << std::endl;
 
-    XMLConfigReader xmlReader;
-
     std::string patternType = "GoldenPattern";  //GoldenPatternWithStat GoldenPattern
     if (edmParameterSet.exists("patternType")) {
       patternType = edmParameterSet.getParameter<std::string>("patternType");
@@ -136,7 +165,7 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
               omtfConfig.get(),
               edmParameterSet,
               eventSetup,
-              xmlReader.readPatterns<GoldenPattern>(*omtfParams, patternsXMLFiles, false));
+              xmlConfigReader.readPatterns<GoldenPattern>(*omtfParams, patternsXMLFiles, false));
         } else {  //in principle should not happen
           throw cms::Exception("OMTFReconstruction::beginRun: omtfParams is nullptr");
         }
@@ -153,16 +182,9 @@ void OMTFReconstruction::beginRun(edm::Run const& run,
               omtfConfig.get(),
               edmParameterSet,
               eventSetup,
-              xmlReader.readPatterns<GoldenPatternWithStat>(*omtfParams, patternsXMLFiles, false));
+              xmlConfigReader.readPatterns<GoldenPatternWithStat>(*omtfParams, patternsXMLFiles, false));
         } else {  //in principle should not happen
           throw cms::Exception("OMTFReconstruction::beginRun: omtfParams is nullptr");
-        }
-        auto omtfProcGoldenPat = dynamic_cast<OMTFProcessor<GoldenPatternWithStat>*>(omtfProc.get());
-
-        if (edmParameterSet.exists("generatePatterns") && edmParameterSet.getParameter<bool>("generatePatterns")) {
-          observers.emplace_back(
-              std::make_unique<PatternGenerator>(edmParameterSet, omtfConfig.get(), omtfProcGoldenPat->getPatterns()));
-          edm::LogVerbatim("OMTFReconstruction") << "generatePatterns: true " << std::endl;
         }
       }
     } else {
@@ -217,8 +239,32 @@ void OMTFReconstruction::addObservers(
       }
 
     if (edmParameterSet.exists("dumpHitsToROOT") && edmParameterSet.getParameter<bool>("dumpHitsToROOT")) {
-      std::string rootFileName = edmParameterSet.getParameter<std::string>("dumpHitsFileName");
-      observers.emplace_back(std::make_unique<DataROOTDumper2>(edmParameterSet, omtfConfig.get(), rootFileName));
+      //std::string rootFileName = edmParameterSet.getParameter<std::string>("dumpHitsFileName");
+      if (candidateSimMuonMatcher == nullptr) {
+        edm::LogVerbatim("OMTFReconstruction")
+            << "dumpHitsToROOT needs candidateSimMuonMatcher, but it is null " << std::endl;
+        throw cms::Exception("dumpHitsToROOT needs candidateSimMuonMatcher, but it is null");
+      }
+      observers.emplace_back(
+          std::make_unique<DataROOTDumper2>(edmParameterSet, omtfConfig.get(), candidateSimMuonMatcher));
+    }
+  }
+
+  auto omtfProcGoldenPatWithStat = dynamic_cast<OMTFProcessor<GoldenPatternWithStat>*>(omtfProc.get());
+  if (omtfProcGoldenPatWithStat) {
+    if (edmParameterSet.exists("eventCaptureDebug"))
+      if (edmParameterSet.getParameter<bool>("eventCaptureDebug")) {
+        observers.emplace_back(std::make_unique<EventCapture>(
+            edmParameterSet, omtfConfig.get(), candidateSimMuonMatcher, muonGeometryTokens
+            //&(omtfProcGoldenPat->getPatterns() ),
+            //watch out, will crash if the proc is re-constructed from the DB after L1TMuonOverlapParamsRcd change
+            ));
+      }
+
+    if (edmParameterSet.exists("generatePatterns") && edmParameterSet.getParameter<bool>("generatePatterns")) {
+      observers.emplace_back(std::make_unique<PatternGenerator>(
+          edmParameterSet, omtfConfig.get(), omtfProcGoldenPatWithStat->getPatterns(), candidateSimMuonMatcher));
+      edm::LogVerbatim("OMTFReconstruction") << "generatePatterns: true " << std::endl;
     }
   }
 }

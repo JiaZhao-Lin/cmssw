@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
-from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCandidateFlatTableProducer
+from PhysicsTools.NanoAOD.simpleSecondaryVertexFlatTableProducer_cfi import simpleSecondaryVertexFlatTableProducer
 
 
 ##################### User floats producers, selectors ##########################
@@ -10,6 +10,7 @@ from PhysicsTools.NanoAOD.simpleCandidateFlatTableProducer_cfi import simpleCand
 vertexTable = cms.EDProducer("VertexTableProducer",
     pvSrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
     goodPvCut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.Rho <= 2"), 
+    pfcSrc = cms.InputTag("packedPFCandidates"),
     svSrc = cms.InputTag("linkedObjects", "vertices"),
     svCut = cms.string(""),  # careful: adding a cut here would make the collection matching inconsistent with the SV table
     dlenMin = cms.double(0),
@@ -19,7 +20,7 @@ vertexTable = cms.EDProducer("VertexTableProducer",
     svDoc  = cms.string("secondary vertices from IVF algorithm"),
 )
 
-svCandidateTable =  simpleCandidateFlatTableProducer.clone(
+svCandidateTable = simpleSecondaryVertexFlatTableProducer.clone(
     src = cms.InputTag("vertexTable"),
     name = cms.string("SV"),
     extension = cms.bool(True),

@@ -6,8 +6,8 @@ import FWCore.ParameterSet.Config as cms
 ##
 
 def doNotFilterLS(process):
-    if hasattr(process,'lsNumberFilter'):
-        process.lsNumberFilter.minLS = 1
+    if hasattr(process,'LSNumberFilter'):
+        process.LSNumberFilter.minLS = 1
     return process
 
 ##
@@ -22,5 +22,13 @@ def lowerHitsPerStructure(process):
             'chisqcut  30.0  4.5',
             'threads 1 1',
             'closeandreopen'
+        )
+    if hasattr(process,'SiPixelAliPedeAlignmentProducerHGCombined'):
+        process.SiPixelAliPedeAlignmentProducerHGCombined.algoConfig.pedeSteerer.options = cms.vstring(
+            'entries 10',
+            'chisqcut  30.0  4.5',
+            'threads 1 1',
+            'closeandreopen',
+            'skipemptycons'
         )
     return process

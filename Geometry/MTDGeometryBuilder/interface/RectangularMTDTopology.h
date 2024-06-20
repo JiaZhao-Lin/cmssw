@@ -87,6 +87,9 @@ public:
   //check whether LocalPoint is inside the pixel active area
   bool isInPixel(const LocalPoint& p) const;
 
+  //provide pixel indices based on local module position (with protection for border positions)
+  std::pair<int, int> pixelIndex(const LocalPoint& p) const;
+
   // Errors
   // Error in local (cm) from the masurement errors
   LocalError localError(const MeasurementPoint&, const MeasurementError&) const override;
@@ -124,6 +127,8 @@ public:
 
   bool isItBigPixelInY(const int iybin) const override { return false; }
 
+  float pixelFractionInX(int ixbin) const override { return 1.0f; }
+  float pixelFractionInY(int iybin) const override { return 1.0f; }
   //-------------------------------------------------------------
   // Return BIG pixel flag in a given pixel range
   bool containsBigPixelInX(int ixmin, int ixmax) const override { return false; }
@@ -160,6 +165,8 @@ public:
   int rowsperroc() const override { return m_ROWS_PER_ROC; }
   // mlw Return number of cols per roc
   int colsperroc() const override { return m_COLS_PER_ROC; }
+  bool bigpixelsX() const override { return false; }
+  bool bigpixelsY() const override { return false; }
   float xoffset() const { return m_xoffset; }
   float yoffset() const { return m_yoffset; }
   float gapxInterpad() const { return m_GAPxInterpad; }  // Value returned in cm

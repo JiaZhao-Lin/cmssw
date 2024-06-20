@@ -146,10 +146,35 @@ namespace edm {
     }
   }
 
-  void ParameterWildcardBase::writeCfi_(
-      std::ostream&, bool /*optional*/, bool& /*startWithComma*/, int /*indentation*/, bool& /*wroteSomething*/) const {
-    // Until we implement default labels and values there is nothing
-    // to do here.
+  void ParameterWildcardBase::writeCfi_(std::ostream& os,
+                                        bool optional,
+                                        bool& startWithComma,
+                                        int indentation,
+                                        CfiOptions& options,
+                                        bool& wroteSomething) const {
+    wroteSomething = true;
+    if (startWithComma)
+      os << ",";
+    startWithComma = true;
+
+    os << "\n";
+    printSpaces(os, indentation);
+
+    os << "allowAnyLabel_ = cms.";
+
+    if (optional) {
+      os << "optional.";
+    } else {
+      os << "required.";
+    }
+    if (!isTracked())
+      os << "untracked.";
+
+    writeTemplate(os, indentation, options);
+  }
+
+  void ParameterWildcardBase::writeTemplate(std::ostream& os, int indentation, CfiOptions&) const {
+    os << parameterTypeEnumToString(type());
   }
 
   bool ParameterWildcardBase::partiallyExists_(ParameterSet const& pset) const { return exists(pset); }

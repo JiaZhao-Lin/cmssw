@@ -35,6 +35,8 @@ class Eras (object):
                  'Run2_2018_noMkFit',
                  'Run3',
                  'Run3_2023',
+                 'Run3_2024',
+                 'Run3_2025',
                  'Run3_noMkFit',
                  'Run3_pp_on_PbPb',
                  'Run3_pp_on_PbPb_approxSiStripClusters',
@@ -46,6 +48,8 @@ class Eras (object):
                  'Run3_2023_FastSim',
                  'Run3_2023_ZDC',
                  'Run3_2023_UPC',
+                 'Run3_2024_ppRef',
+                 'Run3_UPC',
                  'Phase2',
                  'Phase2C9',
                  'Phase2C10',
@@ -61,7 +65,8 @@ class Eras (object):
                  'Phase2C11I13T25M9',
                  'Phase2C11I13T26M9',
                  'Phase2C17I13M9',
-                 'Phase2C20I13M9'
+                 'Phase2C20I13M9',
+                 'Phase2C22I13M9'
         ]
 
         internalUseMods = ['run2_common', 'run2_25ns_specific',

@@ -24,6 +24,8 @@ namespace edm {
     bool isTracked() const { return isTracked_; }
     WildcardValidationCriteria criteria() const { return criteria_; }
 
+    bool isWildcard() const override { return true; }
+
   protected:
     ParameterWildcardBase(ParameterTypes iType, bool isTracked, WildcardValidationCriteria criteria);
 
@@ -39,8 +41,12 @@ namespace edm {
                                     std::set<ParameterTypes>& parameterTypes,
                                     std::set<ParameterTypes>& wildcardTypes) const override;
 
-    void writeCfi_(
-        std::ostream& os, bool optional, bool& startWithComma, int indentation, bool& wroteSomething) const override;
+    void writeCfi_(std::ostream& os,
+                   bool optional,
+                   bool& startWithComma,
+                   int indentation,
+                   CfiOptions&,
+                   bool& wroteSomething) const override;
 
     void print_(std::ostream& os, bool optional, bool writeToCfi, DocFormatHelper& dfh) const override;
 
@@ -48,6 +54,7 @@ namespace edm {
 
     int howManyXORSubNodesExist_(ParameterSet const& pset) const override;
 
+    virtual void writeTemplate(std::ostream& os, int indentation, CfiOptions&) const;
     ParameterTypes type_;
     bool isTracked_;
     WildcardValidationCriteria criteria_;

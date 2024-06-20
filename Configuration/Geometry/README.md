@@ -31,8 +31,9 @@ Calorimeters:
 * C1: 2021 baseline
 
 Muon system:
-* M1: 2021 baseline
+* M1: 2021 baseline with additional chambers in GE21 and iRPC31/41
 * M2: 2023 GE21 shifted in position
+* M3: 2024 with additional chambers in GE21 and iRPC31
 
 PPS:
 * P7: 2021 baseline (after removing overlaps and using common materials whenever possible)
@@ -53,11 +54,17 @@ Several detector combinations have been generated:
 * 2021FlatPlus05Percent = T7+C1+M1+P7+O5+F1
 * 2021FlatPlus10Percent = T8+C1+M1+P7+O5+F1
 * 2023 = T3+C1+M2+P7+O6+F3
-* 2023ZeroMaterial = T4+C1+M1+P7+O4+F2
-* 2023FlatMinus05Percent = T5+C1+M1+P7+O5+F2
-* 2023FlatMinus10Percent = T6+C1+M1+P7+O5+F2
-* 2023FlatPlus05Percent = T7+C1+M1+P7+O5+F2
-* 2023FlatPlus10Percent = T8+C1+M1+P7+O5+F2
+* 2023ZeroMaterial = T4+C1+M2+P7+O4+F2
+* 2023FlatMinus05Percent = T5+C1+M2+P7+O5+F2
+* 2023FlatMinus10Percent = T6+C1+M2+P7+O5+F2
+* 2023FlatPlus05Percent = T7+C1+M2+P7+O5+F2
+* 2023FlatPlus10Percent = T8+C1+M2+P7+O5+F2
+* 2024 = T3+C1+M3+P7+O6+F3
+* 2024ZeroMaterial = T4+C1+M3+P7+O4+F2
+* 2024FlatMinus05Percent = T5+C1+M3+P7+O5+F2
+* 2024FlatMinus10Percent = T6+C1+M3+P7+O5+F2
+* 2024FlatPlus05Percent = T7+C1+M3+P7+O5+F2
+* 2024FlatPlus10Percent = T8+C1+M3+P7+O5+F2
 
 # Phase 2 Geometries
 
@@ -78,6 +85,10 @@ Tracker:
 * T33: Phase2 tilted tracker. Identical to T32 apart from a more realistic description of the 3D sensors in TBPX layer1.
 * T34: Same as T32 with the exception of modified Tracker volume so that it touches CALO on the outer side and BeamPipe on the inner side
 * T35: Same as T33 with the exception of modified Tracker volume so that it touches CALO on the outer side and BeamPipe on the inner side
+* T36: OT (v8.0.6): increased (smallDelta +300 micron) inter-ladder radial spacing TB2S. IT (v7.4.1): TBPX as in T35 with 0.4 mm gap between Z+ and Z-
+* T37: OT (v8.0.6): increased (smallDelta +300 micron) inter-ladder radial spacing TB2S. IT (v7.4.2): TBPX as in T35 with 0.7+0.4+0.7 mm gap between Z+ and Z-
+* T38: OT (v8.0.6): increased (smallDelta +300 micron) inter-ladder radial spacing TB2S. IT (v7.4.4): TBPX as in T35 with 1.3+0.4+1.3 mm gap between Z+ and Z-
+* T39: Same as T35 but introducing BigPixels in InnerTracker (1x2 planar and 2x2 planar modules)
 
 Calorimeters:
 * C9: HGCal (v11 post TDR HGCal Geometry w/ corner centering for HE part) + Phase2 HCAL and EB + Tracker cables (used in 2026D49)
@@ -93,6 +104,8 @@ Calorimeters:
 * C20: HGCal (v17 version of HGCal geometry as in C18) + HFNose with corrected wafer size + Phase2 HCAL and EB (used in 2026D93)
 * C21: HGCal (v17 version of HGCal geometry as in C19 but turning off all dead areas and gaps) + Phase2 HCAL and EB (used in 2026D101)
 * C22: HGCal (v18 version of HGCal geometry as in C18 with calibration cells, nonzero cssette retraction, correct mousebite, guard ring, proper cell size) + Phase2 HCAL and EB (used in 2026D104)
+* C23: HGCal (same as the v18 version which is in C22 but without internal cells in the Geant4 geometry defintiion) + Phase2 HCAL and EB (used in 2026D106)
+* C24: HGCal (v18 version of HGCal geometry as in C122 but turning off all dead areas and gaps) + Phase2 HCAL and EB (used in 2026D109)
 
 Muon system:
 * M4: Phase2 muon system for TDR w/ GE2/1, ME0, RE3/1, RE4/1 (incl. granularity in ME0, staggered GE2/1), 96 iRPC strips, no overlaps, MB4Shields
@@ -144,6 +157,16 @@ Several detector combinations have been generated:
 * D100 = T34+C17+M11+I16+O9+F8
 * D101 = T34+C18+M11+I16+O9+F8
 * D102 = T35+C17+M11+I16+O9+F8
-* D103 = T34+C21+M11+I16+O9+F8
+* D103 = T35+C21+M11+I17+O9+F8
 * D104 = T35+C22+M11+I16+O9+F8
-* D105 = T32+C18+M10+I17+O9+F8
+* D105 = T35+C17+M11+I17+O9+F8
+* D106 = T35+C23+M11+I17+O9+F8
+* D107 = T32+C17+M11+I17+O9+F8
+* D108 = T35+C19+M11+I17+O9+F8
+* D109 = T35+C24+M11+I17+O9+F8
+* D110 = T35+C18+M11+I17+O9+F8
+* D111 = T36+C24+M11+I17+O9+F8
+* D112 = T37+C24+M11+I17+O9+F8
+* D113 = T38+C24+M11+I17+O9+F8
+* D114 = T39+C19+M11+I17+O9+F8
+

@@ -6,6 +6,9 @@
   <test name="PVall" command="testingScripts/test_unitPV.sh">
     <flags PRE_TEST="validateAlignments"/>
   </test>
+  <test name="Zmumuall" command="testingScripts/test_unitZmumu.sh">
+    <flags PRE_TEST="validateAlignments"/>
+  </test>
   <test name="SplitVall" command="testingScripts/test_unitSplitV.sh">
     <flags PRE_TEST="validateAlignments"/>
   </test>
@@ -18,6 +21,9 @@
   <test name="DiMuonVall" command="testingScripts/test_unitDiMuonV.sh">
     <flags PRE_TEST="validateAlignments"/>
   </test>
+  <test name="MTSall" command="testingScripts/test_unitMTS.sh">
+    <flags PRE_TEST="validateAlignments"/>
+  </test>  
   <bin file="testTrackAnalyzers.cc" name="testTrackAnalysis">
     <use name="FWCore/TestProcessor"/>
     <use name="catch2"/>
@@ -27,6 +33,10 @@
     <flags PRE_TEST="PrimaryVertex"/>
     <use name="rootmath"/>
     <use name="roothistmatrix"/>
+    <use name="rootgraphics"/>
+    <use name="Alignment/OfflineValidation"/>
+  </bin>
+  <bin file="testTkAlStyle.C" name="testTkAlStyle">
     <use name="rootgraphics"/>
     <use name="Alignment/OfflineValidation"/>
   </bin>

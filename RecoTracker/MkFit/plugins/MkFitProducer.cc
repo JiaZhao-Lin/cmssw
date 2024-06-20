@@ -32,7 +32,7 @@
 class MkFitProducer : public edm::global::EDProducer<edm::StreamCache<mkfit::MkBuilderWrapper>> {
 public:
   explicit MkFitProducer(edm::ParameterSet const& iConfig);
-  ~MkFitProducer() override = default;
+  ~MkFitProducer() override;
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -100,6 +100,8 @@ MkFitProducer::MkFitProducer(edm::ParameterSet const& iConfig)
   // TODO: what to do when we have multiple instances of MkFitProducer in a job?
   mkfit::MkBuilderWrapper::populate();
 }
+
+MkFitProducer::~MkFitProducer() { mkfit::MkBuilderWrapper::clear(); }
 
 void MkFitProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
@@ -175,7 +177,8 @@ void MkFitProducer::produce(edm::StreamID iID, edm::Event& iEvent, const edm::Ev
       stripContainerMask.copyMaskTo(stripMask);
     }
   } else {
-    stripClusterChargeCut(iEvent.get(stripClusterChargeToken_), stripMask);
+    if (mkFitGeom.isPhase1())
+      stripClusterChargeCut(iEvent.get(stripClusterChargeToken_), stripMask);
   }
 
   // seeds need to be mutable because of the possible cleaning

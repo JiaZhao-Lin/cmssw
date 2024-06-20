@@ -12,34 +12,46 @@ from ..modules.hltDiEG3023IsoCaloIdHgcalIsoUnseededFilter_cfi import *
 from ..modules.hltEG30EtUnseededFilter_cfi import *
 from ..modules.hltEgammaCandidatesWrapperUnseeded_cfi import *
 from ..modules.hltEGL1SeedsForDoublePhotonIsolatedFilter_cfi import *
-from ..sequences.HLTDoFullUnpackingEgammaEcalSequence_cfi import *
-from ..sequences.HLTDoLocalHcalSequence_cfi import *
-from ..sequences.HLTFastJetForEgamma_cfi import *
-from ..sequences.HLTHgcalTiclPFClusteringForEgammaUnseeded_cfi import *
-from ..sequences.HLTL1Sequence_cfi import *
-from ..sequences.HLTPFClusteringForEgammaUnseeded_cfi import *
-from ..sequences.HLTPFHcalClusteringForEgamma_cfi import *
-from ..tasks.HLTDiphoton3023IsoCaloIdUnseededTask_cfi import *
+from ..modules.hltEgammaCandidatesUnseeded_cfi import *
+from ..modules.hltEgammaClusterShapeUnseeded_cfi import *
+from ..modules.hltEgammaEcalPFClusterIsoUnseeded_cfi import *
+from ..modules.hltEgammaHcalPFClusterIsoUnseeded_cfi import *
+from ..modules.hltEgammaHGCALIDVarsUnseeded_cfi import *
+from ..modules.hltEgammaHGCalLayerClusterIsoUnseeded_cfi import *
+from ..modules.hltEgammaHoverEUnseeded_cfi import *
 
-HLTDiphoton3023IsoCaloIdUnseededSequence = cms.Sequence(
-    HLTL1Sequence +
-    hltEGL1SeedsForDoublePhotonIsolatedFilter +
-    HLTDoFullUnpackingEgammaEcalSequence +
-    HLTPFClusteringForEgammaUnseeded +
-    HLTHgcalTiclPFClusteringForEgammaUnseeded +
-    hltEgammaCandidatesWrapperUnseeded +
-    hltEG30EtUnseededFilter +
-    hltDiEG23EtUnseededFilter +
-    hltDiEG3023IsoCaloIdClusterShapeUnseededFilter +
-    hltDiEG3023IsoCaloIdClusterShapeSigmavvUnseededFilter +
-    hltDiEG3023IsoCaloIdClusterShapeSigmawwUnseededFilter +
-    hltDiEG3023IsoCaloIdHgcalHEUnseededFilter +
-    HLTDoLocalHcalSequence +
-    HLTFastJetForEgamma +
-    hltDiEG3023IsoCaloIdHEUnseededFilter +
-    hltDiEG3023IsoCaloIdEcalIsoUnseededFilter +
-    hltDiEG3023IsoCaloIdHgcalIsoUnseededFilter +
-    HLTPFHcalClusteringForEgamma +
-    hltDiEG3023IsoCaloIdHcalIsoUnseededFilter,
-    HLTDiphoton3023IsoCaloIdUnseededTask
-)
+from ..sequences.HLTDoFullUnpackingEgammaEcalSequence_cfi import *
+from ..sequences.HLTEGammaDoLocalHcalSequence_cfi import *
+from ..sequences.HLTFastJetForEgammaSequence_cfi import *
+from ..sequences.HLTHgcalTiclPFClusteringForEgammaUnseededSequence_cfi import *
+from ..sequences.HLTL1Sequence_cfi import *
+from ..sequences.HLTPFClusteringForEgammaUnseededSequence_cfi import *
+from ..sequences.HLTPFHcalClusteringForEgammaSequence_cfi import *
+
+
+HLTDiphoton3023IsoCaloIdUnseededSequence = cms.Sequence(HLTL1Sequence
+                                                        +hltEGL1SeedsForDoublePhotonIsolatedFilter
+                                                        +HLTDoFullUnpackingEgammaEcalSequence
+                                                        +HLTPFClusteringForEgammaUnseededSequence
+                                                        +HLTHgcalTiclPFClusteringForEgammaUnseededSequence
+                                                        +hltEgammaCandidatesUnseeded
+                                                        +hltEgammaCandidatesWrapperUnseeded
+                                                        +hltEG30EtUnseededFilter
+                                                        +hltDiEG23EtUnseededFilter
+                                                        +hltEgammaClusterShapeUnseeded
+                                                        +hltDiEG3023IsoCaloIdClusterShapeUnseededFilter
+                                                        +hltEgammaHGCALIDVarsUnseeded
+                                                        +hltDiEG3023IsoCaloIdClusterShapeSigmavvUnseededFilter
+                                                        +hltDiEG3023IsoCaloIdClusterShapeSigmawwUnseededFilter
+                                                        +hltDiEG3023IsoCaloIdHgcalHEUnseededFilter
+                                                        +HLTEGammaDoLocalHcalSequence
+                                                        +HLTFastJetForEgammaSequence
+                                                        +hltEgammaHoverEUnseeded
+                                                        +hltDiEG3023IsoCaloIdHEUnseededFilter
+                                                        +hltEgammaEcalPFClusterIsoUnseeded
+                                                        +hltDiEG3023IsoCaloIdEcalIsoUnseededFilter
+                                                        +hltEgammaHGCalLayerClusterIsoUnseeded
+                                                        +hltDiEG3023IsoCaloIdHgcalIsoUnseededFilter
+                                                        +HLTPFHcalClusteringForEgammaSequence
+                                                        +hltEgammaHcalPFClusterIsoUnseeded
+                                                        +hltDiEG3023IsoCaloIdHcalIsoUnseededFilter)

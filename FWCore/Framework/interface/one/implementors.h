@@ -80,7 +80,6 @@ namespace edm {
 
       protected:
         void usesResource(std::string const& iName);
-        void usesResource();
 
       private:
         SharedResourcesAcquirer createAcquirer() override;
@@ -331,7 +330,7 @@ namespace edm {
         ~Accumulator() noexcept(false) override{};
 
       private:
-        bool hasAccumulator() const override { return true; }
+        bool hasAccumulator() const noexcept override { return true; }
 
         void produce(Event& ev, EventSetup const& es) final { accumulate(ev, es); }
 
@@ -391,17 +390,17 @@ namespace edm {
         }
 
       private:
-        size_t transformIndex_(edm::BranchDescription const& iBranch) const final {
+        size_t transformIndex_(edm::BranchDescription const& iBranch) const noexcept final {
           return TransformerBase::findMatchingIndex(*this, iBranch);
         }
-        ProductResolverIndex transformPrefetch_(std::size_t iIndex) const final {
+        ProductResolverIndex transformPrefetch_(std::size_t iIndex) const noexcept final {
           return TransformerBase::prefetchImp(iIndex);
         }
         void transformAsync_(WaitingTaskHolder iTask,
                              std::size_t iIndex,
                              edm::EventForTransformer& iEvent,
                              edm::ActivityRegistry* iAct,
-                             ServiceWeakToken const& iToken) const final {
+                             ServiceWeakToken const& iToken) const noexcept final {
           return TransformerBase::transformImpAsync(std::move(iTask), iIndex, iAct, *this, iEvent);
         }
         void extendUpdateLookup(BranchType iBranchType, ProductResolverIndexHelper const& iHelper) override {

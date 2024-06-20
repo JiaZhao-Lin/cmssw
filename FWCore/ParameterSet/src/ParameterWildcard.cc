@@ -111,6 +111,17 @@ namespace edm {
     return parameterNames.size() == 1U;
   }
 
+  void ParameterWildcard<ParameterSetDescription>::writeTemplate(std::ostream& os,
+                                                                 int indentation,
+                                                                 CfiOptions& options) const {
+    os << "PSetTemplate(";
+    indentation += 2;
+    if (psetDesc_) {
+      psetDesc_->writeCfi(os, false, indentation, options);
+    }
+    os << ")";
+  }
+
   // -------------------------------------------------------------------------
 
   ParameterWildcard<std::vector<ParameterSet> >::ParameterWildcard(std::string const& pattern,

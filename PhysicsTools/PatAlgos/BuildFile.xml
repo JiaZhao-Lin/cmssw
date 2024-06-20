@@ -16,8 +16,10 @@
 <use name="PhysicsTools/PatUtils"/>
 <use name="PhysicsTools/TensorFlow"/>
 <use name="PhysicsTools/ONNXRuntime"/>
+<use name="PhysicsTools/XGBoost"/>
 <use name="TrackingTools/Records"/>
 <use name="clhep"/>
+<use name="xgboost"/>
 <export>
   <lib name="1"/>
 </export>

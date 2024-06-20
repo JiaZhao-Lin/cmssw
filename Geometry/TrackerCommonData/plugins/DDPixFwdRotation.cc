@@ -11,11 +11,11 @@
 #include "DetectorDescription/Core/interface/DDAlgorithm.h"
 #include "DetectorDescription/Core/interface/DDAlgorithmFactory.h"
 #include "DetectorDescription/Core/interface/DDTransform.h"
-#include "CLHEP/Vector/ThreeVector.h"
-#include "CLHEP/Vector/Rotation.h"
-#include "CLHEP/Vector/RotationInterfaces.h"
-#include "CLHEP/Units/GlobalPhysicalConstants.h"
-#include "CLHEP/Units/GlobalSystemOfUnits.h"
+#include <CLHEP/Vector/ThreeVector.h>
+#include <CLHEP/Vector/Rotation.h>
+#include <CLHEP/Vector/RotationInterfaces.h>
+#include <CLHEP/Units/GlobalPhysicalConstants.h>
+#include <CLHEP/Units/SystemOfUnits.h>
 
 #include <cmath>
 #include <algorithm>
@@ -117,12 +117,11 @@ void DDPixFwdRotation::execute(DDCompactView&) {
   CLHEP::Hep3Vector axis = vZ.cross(jkC);
   double angleCover = vZ.angle(jkC);
   edm::LogVerbatim("PixelGeom") << " Angle to Cover: " << angleCover;
-  CLHEP::HepRotation* rpCN = new CLHEP::HepRotation(axis, angleCover);
+  CLHEP::HepRotation rpCN(axis, angleCover);
 
-  DDrot(
-      DDName(rotNameCoverToNipple_, rotNS_),
-      std::make_unique<DDRotationMatrix>(
-          rpCN->xx(), rpCN->xy(), rpCN->xz(), rpCN->yx(), rpCN->yy(), rpCN->yz(), rpCN->zx(), rpCN->zy(), rpCN->zz()));
+  DDrot(DDName(rotNameCoverToNipple_, rotNS_),
+        std::make_unique<DDRotationMatrix>(
+            rpCN.xx(), rpCN.xy(), rpCN.xz(), rpCN.yx(), rpCN.yy(), rpCN.yz(), rpCN.zx(), rpCN.zy(), rpCN.zz()));
   CLHEP::HepRotation rpNC(axis, -angleCover);
   edm::LogVerbatim("PixelGeom") << "DDPixFwdBlades::Defines " << DDName(rotNameCoverToNipple_, rotNS_) << " with "
                                 << rpCN;

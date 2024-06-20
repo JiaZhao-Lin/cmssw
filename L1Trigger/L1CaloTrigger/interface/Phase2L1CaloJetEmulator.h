@@ -38,18 +38,6 @@ namespace gctobj {
       phiCenter = 0;
       etaCenter = 0;
     }
-
-    towerMax& operator=(const towerMax& rhs) {
-      energy = rhs.energy;
-      phi = rhs.phi;
-      eta = rhs.eta;
-      energyMax = rhs.energyMax;
-      phiMax = rhs.phiMax;
-      etaMax = rhs.etaMax;
-      phiCenter = rhs.phiCenter;
-      etaCenter = rhs.etaCenter;
-      return *this;
-    }
   };
 
   class jetInfo {
@@ -76,20 +64,6 @@ namespace gctobj {
       etaMax = 0;
       phiCenter = 0;
       etaCenter = 0;
-    }
-
-    jetInfo& operator=(const jetInfo& rhs) {
-      seedEnergy = rhs.seedEnergy;
-      energy = rhs.energy;
-      tauEt = rhs.tauEt;
-      phi = rhs.phi;
-      eta = rhs.eta;
-      energyMax = rhs.energyMax;
-      phiMax = rhs.phiMax;
-      etaMax = rhs.etaMax;
-      phiCenter = rhs.phiCenter;
-      etaCenter = rhs.etaCenter;
-      return *this;
     }
   };
 
@@ -410,7 +384,7 @@ namespace gctobj {
 
   inline jetInfo getJetValues(GCTsupertower_t tempX[nSTEta][nSTPhi], int seed_eta, int seed_phi) {
     float temp[nSTEta + 2][nSTPhi + 2];
-    float eta_slice[3];
+    float eta_slice[3] = {0.f, 0.f, 0.f};
     jetInfo jet_tmp;
 
     for (int i = 0; i < nSTEta + 2; i++) {
@@ -467,14 +441,17 @@ namespace gctobj {
     return jet_tmp;
   }
 
-  inline jetInfo getRegion(GCTsupertower_t temp[nSTEta][nSTPhi]) {
+  inline jetInfo getRegion(GCTsupertower_t temp[nSTEta][nSTPhi], float TTseedThreshold) {
     jetInfo jet_tmp, jet;
     jet_tmp = getJetPosition(temp);
     int seed_phi = jet_tmp.phi;
     int seed_eta = jet_tmp.eta;
     float seed_energy = jet_tmp.seedEnergy;
+    float seed_tower_energy = jet_tmp.energyMax;
     jet = getJetValues(temp, seed_eta, seed_phi);
-    if (seed_energy > 10.) {  // suppress <= 10 GeV ST as seed
+    if (seed_energy > 10. &&
+        seed_tower_energy >
+            TTseedThreshold) {  // suppress <= 10 GeV ST as ST seed and <=5 GeV (3 GeV) as max TT in ST barrel/HF (endcap)
       jet_tmp.energy = jet.energy;
       jet_tmp.tauEt = jet.tauEt;
     } else {
@@ -482,7 +459,7 @@ namespace gctobj {
       jet_tmp.tauEt = 0.;
     }
     jet_tmp.etaCenter = jet.etaCenter;  // this is the ET weighted eta centre of the ST
-    jet_tmp.phiCenter = jet.phiCenter;  // this is the ET weighted eta centre of the ST
+    jet_tmp.phiCenter = jet.phiCenter;  // this is the ET weighted phi centre of the ST
     jet_tmp.etaMax = jet.etaMax;        // this is the leading tower eta in the ST
     jet_tmp.phiMax = jet.phiMax;        // this is the leading tower phi in the ST
     return jet_tmp;

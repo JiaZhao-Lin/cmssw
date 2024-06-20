@@ -51,7 +51,6 @@ mixData = cms.EDProducer("PreMixingModule",
                 # To preserve the behaviour of copy-pasted version of premix worker
                 # All these are done in stage1 (for both signal and pileup)
                 AddNoise = False,
-                killModules = False,
                 MissCalibrate = False,
             ),
             workerType = cms.string("PreMixingSiPixelWorker"),
@@ -265,6 +264,12 @@ phase2_timing_layer.toModify(mixData,
             digiTagSig = cms.InputTag("mix", "FTLEndcap"),
             pileInputTag = cms.InputTag("mix", "FTLEndcap"),
         ),
+        mtdTruth = cms.PSet(
+            workerType = cms.string("PreMixingMtdTruthWorker"),
+            labelSig = cms.InputTag("mix", "MergedMtdTruthLC"),
+            pileInputTag = cms.InputTag("mix", "MergedMtdTruthLC"),
+            collectionDM = cms.string("MergedMtdTruthLC"),
+        )
     )
 )
 # ECAL

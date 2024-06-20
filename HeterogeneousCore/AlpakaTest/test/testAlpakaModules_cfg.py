@@ -54,6 +54,7 @@ process.alpakaESProducerD = cms.ESProducer("TestAlpakaESProducerD@alpaka",
     srcA = cms.ESInputTag("", "appendedLabel"),
     srcB = cms.ESInputTag("", "explicitLabel"),
 )
+process.alpakaESProducerE = cms.ESProducer("TestAlpakaESProducerE@alpaka")
 process.alpakaESProducerNull = cms.ESProducer("TestAlpakaESProducerNull@alpaka",
     appendToDataLabel = cms.string("null"),
 )
@@ -68,6 +69,9 @@ process.alpakaGlobalProducer = testAlpakaGlobalProducer.clone(
         alpaka_cuda_async = 20,
         alpaka_rocm_async = 30,
     )
+)
+process.alpakaGlobalProducerE = cms.EDProducer("TestAlpakaGlobalProducerE@alpaka",
+    source = cms.InputTag("alpakaGlobalProducer")
 )
 process.alpakaStreamProducer = cms.EDProducer("TestAlpakaStreamProducer@alpaka",
     source = cms.InputTag("intProduct"),
@@ -93,16 +97,33 @@ process.alpakaStreamSynchronizingProducer = cms.EDProducer("TestAlpakaStreamSync
     intSource = cms.InputTag("intProduct"),
     expectedInt = cms.int32(84) # sum of intProduct and esProducerA
 )
+process.alpakaStreamSynchronizingProducerToDevice = cms.EDProducer("TestAlpakaStreamSynchronizingProducerToDevice@alpaka",
+    size = cms.PSet(
+        alpaka_serial_sync = cms.int32(1),
+        alpaka_cuda_async = cms.int32(2),
+        alpaka_rocm_async = cms.int32(3),
+    )
+)
 
 process.alpakaGlobalConsumer = cms.EDAnalyzer("TestAlpakaAnalyzer",
     source = cms.InputTag("alpakaGlobalProducer"),
     expectSize = cms.int32(10),
     expectBackend = cms.string("SerialSync")
 )
+process.alpakaGlobalDeviceConsumer = cms.EDProducer("TestAlpakaGlobalProducerNoOutput@alpaka",
+    source = cms.InputTag("alpakaGlobalProducer")
+)
+process.alpakaGlobalConsumerE = process.alpakaGlobalConsumer.clone(
+    source = "alpakaGlobalProducerE",
+    expectXvalues = cms.vdouble([(i%2)*10+1 + abs(27)+i*2 for i in range(0,5)] + [0]*5)
+)
 process.alpakaStreamConsumer = cms.EDAnalyzer("TestAlpakaAnalyzer",
     source = cms.InputTag("alpakaStreamProducer"),
     expectSize = cms.int32(5),
     expectBackend = cms.string("SerialSync")
+)
+process.alpakaStreamDeviceConsumer = process.alpakaGlobalDeviceConsumer.clone(
+    source = "alpakaStreamProducer"
 )
 process.alpakaStreamInstanceConsumer = cms.EDAnalyzer("TestAlpakaAnalyzer",
     source = cms.InputTag("alpakaStreamInstanceProducer", "testInstance"),
@@ -114,6 +135,10 @@ process.alpakaStreamSynchronizingConsumer = cms.EDAnalyzer("TestAlpakaAnalyzer",
     expectSize = cms.int32(10),
     expectBackend = cms.string("SerialSync")
 )
+process.alpakaStreamSynchronizingProducerToDeviceDeviceConsumer1 = process.alpakaGlobalDeviceConsumer.clone(
+    source = "alpakaStreamSynchronizingProducerToDevice"
+)
+process.alpakaStreamSynchronizingProducerToDeviceDeviceConsumer2 = process.alpakaStreamSynchronizingProducerToDeviceDeviceConsumer1.clone()
 process.alpakaNullESConsumer = cms.EDProducer("TestAlpakaGlobalProducerNullES@alpaka",
     eventSetupSource = cms.ESInputTag("", "null")
 )
@@ -121,8 +146,13 @@ process.alpakaNullESConsumer = cms.EDProducer("TestAlpakaGlobalProducerNullES@al
 if args.processAcceleratorBackend != "":
     process.ProcessAcceleratorAlpaka.setBackend(args.processAcceleratorBackend)
 if args.moduleBackend != "":
-    for name in ["ESProducerA", "ESProducerB", "ESProducerC", "ESProducerD", "ESProducerNull",
-                 "GlobalProducer", "StreamProducer", "StreamInstanceProducer", "StreamSynchronizingProducer",
+    for name in ["ESProducerA", "ESProducerB", "ESProducerC", "ESProducerD", "ESProducerE",
+                 "ESProducerNull",
+                 "GlobalProducer", "GlobalProducerE",
+                 "StreamProducer", "StreamInstanceProducer",
+                 "StreamSynchronizingProducer", "StreamSynchronizingProducerToDevice",
+                 "GlobalDeviceConsumer", "StreamDeviceConsumer",
+                 "StreamSynchronizingProducerToDeviceDeviceConsumer1", "StreamSynchronizingProducerToDeviceDeviceConsumer2",
                  "NullESConsumer"]:
         mod = getattr(process, "alpaka"+name)
         mod.alpaka = cms.untracked.PSet(backend = cms.untracked.string(args.moduleBackend))
@@ -131,6 +161,8 @@ if args.expectBackend == "cuda_async":
         m.expectSize = size
         m.expectBackend = "CudaAsync"
     setExpect(process.alpakaGlobalConsumer, size=20)
+    setExpect(process.alpakaGlobalConsumerE, size=20)
+    process.alpakaGlobalConsumerE.expectXvalues.extend([0]*(20-10))
     setExpect(process.alpakaStreamConsumer, size=25)
     setExpect(process.alpakaStreamInstanceConsumer, size=36)
     setExpect(process.alpakaStreamSynchronizingConsumer, size=20)
@@ -139,6 +171,8 @@ elif args.expectBackend == "rocm_async":
         m.expectSize = size
         m.expectBackend = "ROCmAsync"
     setExpect(process.alpakaGlobalConsumer, size = 30)
+    setExpect(process.alpakaGlobalConsumerE, size = 30)
+    process.alpakaGlobalConsumerE.expectXvalues.extend([0]*(30-10))
     setExpect(process.alpakaStreamConsumer, size = 125)
     setExpect(process.alpakaStreamInstanceConsumer, size = 216)
     setExpect(process.alpakaStreamSynchronizingConsumer, size = 30)
@@ -156,15 +190,22 @@ process.output = cms.OutputModule('PoolOutputModule',
 process.t = cms.Task(
     process.intProduct,
     process.alpakaGlobalProducer,
+    process.alpakaGlobalProducerE,
     process.alpakaStreamProducer,
     process.alpakaStreamInstanceProducer,
-    process.alpakaStreamSynchronizingProducer
+    process.alpakaStreamSynchronizingProducer,
+    process.alpakaStreamSynchronizingProducerToDevice
 )
 process.p = cms.Path(
     process.alpakaGlobalConsumer+
+    process.alpakaGlobalDeviceConsumer+
+    process.alpakaGlobalConsumerE+
     process.alpakaStreamConsumer+
+    process.alpakaStreamDeviceConsumer+
     process.alpakaStreamInstanceConsumer+
     process.alpakaStreamSynchronizingConsumer+
+    process.alpakaStreamSynchronizingProducerToDeviceDeviceConsumer1+
+    process.alpakaStreamSynchronizingProducerToDeviceDeviceConsumer2+
     process.alpakaNullESConsumer,
     process.t
 )

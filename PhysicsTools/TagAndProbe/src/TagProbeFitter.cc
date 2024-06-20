@@ -222,10 +222,10 @@ string TagProbeFitter::calculateEfficiency(string dirName,
   if (not split_mode) {
     data = new RooDataSet("data",
                           "data",
-                          inputTree,
                           dataVars,
-                          /*selExpr=*/"",
-                          /*wgtVarName=*/(weightVar.empty() ? nullptr : weightVar.c_str()));
+                          Import(*inputTree),
+                          /*selExpr=*/Cut(""),
+                          /*wgtVarName=*/WeightVar(weightVar.empty() ? nullptr : weightVar.c_str()));
 
     // Now add all expressions that are computed dynamically
     for (vector<pair<pair<string, string>, pair<string, vector<string> > > >::const_iterator
@@ -355,7 +355,7 @@ string TagProbeFitter::calculateEfficiency(string dirName,
       //create the dataset
       data_bin = (RooDataSet*)data->reduce(Cut(TString::Format("allCats==%d", iCat)));
     } else {
-      data_bin = new RooDataSet("data", "data", dataVars, (weightVar.empty() ? nullptr : weightVar.c_str()));
+      data_bin = new RooDataSet("data", "data", dataVars, WeightVar(weightVar.empty() ? nullptr : weightVar.c_str()));
 
       TDirectory* tmp = gDirectory;
       gROOT->cd();
@@ -553,22 +553,20 @@ void TagProbeFitter::doFitEfficiency(RooWorkspace* w, string pdfName, RooRealVar
   std::unique_ptr<RooFitResult> res;
 
   RooAbsData* data = w->data("data");
-  std::unique_ptr<RooDataHist> bdata;
   if (binnedFit) {
     // get variables from data, which contain also other binning or expression variables
     const RooArgSet* dataObs = data->get(0);
     // remove everything which is not a dependency of the pdf
-    RooArgSet* obs = w->pdf("simPdf")->getObservables(dataObs);
-    bdata = std::make_unique<RooDataHist>("data_binned", "data_binned", *obs, *data);
-    w->import(*bdata);
+    std::unique_ptr<RooArgSet> obs{w->pdf("simPdf")->getObservables(dataObs)};
+    RooDataHist bdata{"data_binned", "data_binned", *obs, *data};
+    w->import(bdata);
     data = w->data("data_binned");
-    delete obs;
   }
 
   double totPassing = data->sumEntries("_efficiencyCategory_==_efficiencyCategory_::Passed");
   double totFailing = data->sumEntries("_efficiencyCategory_==_efficiencyCategory_::Failed");
 
-  RooAbsReal* simNLL = w->pdf("simPdf")->createNLL(*data, Extended(true), NumCPU(numCPU));
+  std::unique_ptr<RooAbsReal> simNLL{w->pdf("simPdf")->createNLL(*data, Extended(true), NumCPU(numCPU))};
 
   RooMinimizer minimizer(*simNLL);  // we are going to use this for 'scan'
   minimizer.setStrategy(1);
@@ -701,8 +699,6 @@ void TagProbeFitter::doFitEfficiency(RooWorkspace* w, string pdfName, RooRealVar
       efficiency.setAsymError(-cerr, 0);
     }
   }
-
-  delete simNLL;
 }
 
 void TagProbeFitter::createPdf(RooWorkspace* w, vector<string>& pdfCommands) {
@@ -1044,7 +1040,7 @@ void TagProbeFitter::makeEfficiencyPlot2D(RooDataSet& eff,
                               effName.Data()));
   h->SetOption("colztexte");
   h->GetZaxis()->SetRangeUser(-0.001, 1.001);
-  h->SetStats(kFALSE);
+  h->SetStats(false);
   for (int i = 0; i < eff.numEntries(); i++) {
     const RooArgSet* entry = eff.get(i);
     if (catName != nullptr && entry->getCatIndex(catName) != catIndex)

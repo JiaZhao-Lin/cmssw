@@ -52,6 +52,8 @@
 #define _VALUE_TYPE_EIGEN_COLUMN 2
 
 /* The size type need to be "hardcoded" in the template parameters for classes serialized by ROOT */
+/* In practice, using a typedef as a template parameter to the Layout or its ViewTemplateFreeParams member
+ * declaration fails ROOT dictionary generation.  */
 #define CMS_SOA_BYTE_SIZE_TYPE std::size_t
 
 namespace cms::soa {
@@ -70,13 +72,13 @@ namespace cms::soa {
   namespace RestrictQualify {
     constexpr bool enabled = true;
     constexpr bool disabled = false;
-    constexpr bool Default = disabled;
+    constexpr bool Default = enabled;
   }  // namespace RestrictQualify
 
   namespace RangeChecking {
     constexpr bool enabled = true;
     constexpr bool disabled = false;
-    constexpr bool Default = disabled;
+    constexpr bool Default = enabled;
   }  // namespace RangeChecking
 
   template <typename T, bool RESTRICT_QUALIFY>
@@ -132,6 +134,8 @@ namespace cms::soa {
       return reinterpret_cast<intptr_t>(addr) % alignment;
     }
 
+    TupleOrPointerType tupleOrPointer() { return addr_; }
+
   public:
     // scalar or column
     ValueType const* addr_ = nullptr;
@@ -165,6 +169,8 @@ namespace cms::soa {
       const auto& [addr, stride] = tuple;
       return reinterpret_cast<intptr_t>(addr) % alignment;
     }
+
+    TupleOrPointerType tupleOrPointer() { return {addr_, stride_}; }
 
   public:
     // address and stride
@@ -201,6 +207,8 @@ namespace cms::soa {
       return reinterpret_cast<intptr_t>(addr) % alignment;
     }
 
+    TupleOrPointerType tupleOrPointer() { return addr_; }
+
   public:
     // scalar or column
     ValueType* addr_ = nullptr;
@@ -233,6 +241,8 @@ namespace cms::soa {
       const auto& [addr, stride] = tuple;
       return reinterpret_cast<intptr_t>(addr) % alignment;
     }
+
+    TupleOrPointerType tupleOrPointer() { return {addr_, stride_}; }
 
   public:
     // address and stride

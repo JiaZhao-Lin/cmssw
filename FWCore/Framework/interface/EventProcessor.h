@@ -212,10 +212,7 @@ namespace edm {
 
     InputSource::ItemType processRuns();
     void beginRunAsync(IOVSyncValue const&, WaitingTaskHolder);
-    void streamBeginRunAsync(unsigned int iStream,
-                             std::shared_ptr<RunProcessingStatus>,
-                             bool precedingTasksSucceeded,
-                             WaitingTaskHolder);
+    void streamBeginRunAsync(unsigned int iStream, std::shared_ptr<RunProcessingStatus>, WaitingTaskHolder) noexcept;
     void releaseBeginRunResources(unsigned int iStream);
     void endRunAsync(std::shared_ptr<RunProcessingStatus>, WaitingTaskHolder);
     void handleEndRunExceptions(std::exception_ptr, WaitingTaskHolder const&);
@@ -294,7 +291,6 @@ namespace edm {
 
     void throwAboutModulesRequiringLuminosityBlockSynchronization() const;
     void warnAboutModulesRequiringRunSynchronization() const;
-    void warnAboutLegacyModules() const;
 
     bool needToCallNext() const { return needToCallNext_; }
     void setNeedToCallNext(bool val) { needToCallNext_ = val; }

@@ -302,7 +302,7 @@ namespace edm {
 
     void validate(ParameterSet& pset) const;
 
-    void writeCfi(std::ostream& os, bool startWithComma, int indentation) const;
+    void writeCfi(std::ostream& os, bool startWithComma, int indentation, CfiOptions&) const;
 
     void print(std::ostream& os, DocFormatHelper& dfh) const;
 
@@ -360,6 +360,7 @@ namespace edm {
                           std::ostream& os,
                           bool& startWithComma,
                           int indentation,
+                          CfiOptions&,
                           bool& wroteSomething);
 
     static void printNode(SetDescriptionEntry const& entry, std::ostream& os, DocFormatHelper& dfh);
@@ -431,7 +432,7 @@ namespace edm {
   ParameterWildcardBase* ParameterSetDescription::addWildcard(U const& pattern, bool isTracked) {
     std::unique_ptr<ParameterDescriptionNode> node =
         std::make_unique<ParameterWildcard<T>>(pattern, RequireZeroOrMore, isTracked);
-    ParameterDescriptionNode* pnode = addNode(std::move(node), true, false);
+    ParameterDescriptionNode* pnode = addNode(std::move(node), true, true);
     return static_cast<ParameterWildcardBase*>(pnode);
   }
 

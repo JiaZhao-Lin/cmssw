@@ -55,8 +55,11 @@ common_UseLuminosity = cms.PSet(
 common_MCtruth = cms.PSet(
     DoFineCalo = cms.bool(False),
     SaveCaloBoundaryInformation = cms.bool(False),
+    PersistencyEmin = cms.double(50.0), # in GeV
+    RegionEmin = cms.vdouble(), # in GeV
+    RegionEminName = cms.vstring(), # name of regions for reduced 
     # currently unused; left in place for future studies
-    EminFineTrack = cms.double(10000.0),
+    EminFineTrack = cms.double(10000.0), #in MeV
     FineCaloNames = cms.vstring('ECAL', 'HCal', 'HGCal', 'HFNoseVol', 'VCAL'),
     FineCaloLevels = cms.vint32(4, 4, 8, 3, 3),
     UseFineCalo = cms.vint32(2, 3),
@@ -73,7 +76,7 @@ fineCalo.toModify(common_MCtruth,
 ## enable CaloBoundary information for all Phase2 workflows
 from Configuration.Eras.Modifier_phase2_hgcal_cff import phase2_hgcal
 phase2_hgcal.toModify(common_MCtruth,
-        SaveCaloBoundaryInformation = True
+    SaveCaloBoundaryInformation = True
 )
 
 g4SimHits = cms.EDProducer("OscarMTProducer",
@@ -364,7 +367,7 @@ g4SimHits = cms.EDProducer("OscarMTProducer",
         EnergyThresholdForHistoryInGeV = cms.double(0.05)
     ),
     MuonSD = cms.PSet(
-        EnergyThresholdForPersistency = cms.double(1.0),
+        EnergyThresholdForPersistency = cms.double(1.0), # in GeV
         PrintHits = cms.bool(False),
         AllMuonsPersistent = cms.bool(True),
         UseDemoHitRPC = cms.bool(True),
@@ -420,6 +423,9 @@ g4SimHits = cms.EDProducer("OscarMTProducer",
     HCalSD = cms.PSet(
         common_UseLuminosity,
         UseBirkLaw                = cms.bool(True),
+        # Values of Birks constants from NIM 80 (1970) 239-244:
+        # as implemented in Geant3 required correction due to
+        # biased computation of enery deposition
         BirkC3                    = cms.double(1.75),
         BirkC2                    = cms.double(0.142),
         BirkC1                    = cms.double(0.0060),
@@ -559,9 +565,12 @@ g4SimHits = cms.EDProducer("OscarMTProducer",
         Verbosity        = cms.untracked.int32(0),
         EminHit          = cms.double(0.0),
         UseBirkLaw       = cms.bool(True),
+        # Values of Birks constants from NIM 80 (1970) 239-244:
+        # as implemented in Geant3 required correction due to
+        # biased computation of enery deposition
         BirkC3           = cms.double(1.75),
         BirkC2           = cms.double(0.142),
-        BirkC1           = cms.double(0.0052),
+        BirkC1           = cms.double(0.0060),
         FiducialCut      = cms.bool(False),
         DistanceFromEdge = cms.double(1.0),
         StoreAllG4Hits   = cms.bool(False),
@@ -752,9 +761,9 @@ phase2_common.toModify(g4SimHits,
 
 from Configuration.Eras.Modifier_hgcaltb_cff import hgcaltb
 hgcaltb.toModify(g4SimHits,
-                 OnlySDs = ['AHcalSensitiveDetector','CaloTrkProcessing','FP420SensitiveDetector','HFNoseSensitiveDetector','HGCSensitiveDetector','HGCalSensitiveDetector','HGCalTB1601SensitiveDetector','HcalTB06BeamDetector'],
+                 OnlySDs = ['AHcalSensitiveDetector','CaloTrkProcessing','HFNoseSensitiveDetector','HGCSensitiveDetector','HGCalSensitiveDetector','HGCalTB1601SensitiveDetector','HcalTB06BeamDetector'],
                  TrackHits = ['FP420SI'],
-                 CaloHits = ['CalibrationHGCHitsEE','CalibrationHGCHitsHEback','CalibrationHGCHitsHEfront','CaloHitsTk','ChamberHits','EcalHitsEB','EcalHitsEE','EcalHitsES','EcalTBH4BeamHits','FibreHits','HFNoseHits','HcalSensitiveDetector','HGCHitsEE','HGCHitsHEback','HGCHitsHEfront','HcalHits','HcalTB06BeamHits','WedgeHits'],
+                 CaloHits = ['CalibrationHGCHitsEE','CalibrationHGCHitsHEback','CalibrationHGCHitsHEfront','CaloHitsTk','ChamberHits','HFNoseHits','HGCHitsEE','HGCHitsHEback','HGCHitsHEfront','HcalHits','HcalTB06BeamHits','WedgeHits'],
                  NonBeamEvent = True,
                  UseMagneticField = False,
                  CaloSD = dict(
@@ -764,6 +773,14 @@ hgcaltb.toModify(g4SimHits,
                      TestBeam = True ),
                  HCalSD = dict(
                      ForTBHCAL = True)
+)
+
+from Configuration.Eras.Modifier_phase2_hgcalOnly_cff import phase2_hgcalOnly
+phase2_hgcalOnly.toModify(g4SimHits,
+                       OnlySDs = ['CaloTrkProcessing','HGCScintillatorSensitiveDetector','HGCalSensitiveDetector'],
+                       TrackHits = [],
+                       CaloHits = ["CalibrationHGCHitsEE",'CalibrationHGCHitsHEback',"CalibrationHGCHitsHEfront","CaloHitsTk","HGCHitsEE","HGCHitsHEback","HGCHitsHEfront",],
+                       LHCTransport = False
 )
 
 from Configuration.Eras.Modifier_phase2_hgcalV18_cff import phase2_hgcalV18
